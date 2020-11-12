@@ -2,6 +2,10 @@
 
 Simple precompile fuzzer with geth bindings.
 
+This code is largely based on
+[Shamatar's algebraic fuzzer](https://github.com/shamatar/algebraic_fuzzer/).
+His code is used with permission, pending FOSS licensing.
+
 ### To add a target to this repo:
 
 - Make a new file in `src/targets/`
