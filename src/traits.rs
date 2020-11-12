@@ -54,7 +54,7 @@ pub trait Target: Send + Sync {
     fn new() -> Self;
     fn name() -> &'static str;
 
-    fn run_experimental(&self, input: &[u8]) -> Vec<Result<Vec<u8>, String>>;
+    fn run_experimental(&self, input: &[u8]) -> Result<Vec<u8>, String>;
 
     // Ought to be overriden in most cases
     fn generate(&self, mutator: &mut Mutator<Self::Rng>) -> Self::Intermediate {
@@ -68,7 +68,7 @@ pub trait Target: Send + Sync {
         buf
     }
 
-    fn run_next_experimental(&self, mutator: &mut Mutator<Self::Rng>) -> Vec<Result<Vec<u8>, String>> {
+    fn run_next_experimental(&self, mutator: &mut Mutator<Self::Rng>) -> Result<Vec<u8>, String> {
         let buf = self.generate_next(mutator);
         self.run_experimental(&buf)
     }
@@ -76,6 +76,7 @@ pub trait Target: Send + Sync {
 
 pub trait TargetWithControl: Target {
     fn run_control(&self, input: &[u8]) -> Result<Vec<u8>, String>;
+
 
     fn compare(&self, input: &[u8]) -> Result<(), ComparisonError> {
         let a = self.run_experimental(input);
