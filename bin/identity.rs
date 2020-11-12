@@ -2,10 +2,10 @@ extern crate smash;
 
 use smash::{
     targets::IdentityPrecompile,
-    fuzzer,
+    fuzzer::Fuzzer,
 };
 
 
 fn main() {
-    fuzzer::run_against_control::<IdentityPrecompile>(2);
+    Fuzzer::new().run_against_control::<IdentityPrecompile>(2);
 }

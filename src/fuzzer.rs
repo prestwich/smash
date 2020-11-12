@@ -2,7 +2,59 @@ use lain::{prelude::*, rand::rngs::StdRng};
 
 use crate::traits::TargetWithControl;
 
-fn _run<F>(threads: usize, callback: F)
+#[derive(Copy, Clone, Default, Debug)]
+pub struct Fuzzer;
+
+impl Fuzzer {
+    pub fn new() -> Self {
+        Self
+    }
+
+    pub fn run<T>(&self, threads: usize)
+    where
+        T: TargetWithControl<Rng = StdRng>,
+    {
+        _run(threads, move |mutator| {
+            let target = T::new();
+
+            let input = target.generate_next(mutator);
+
+            let res = target.run_experimental(&input);
+
+            if res.is_err() {
+                let message = format!("{:?} {:?}", input, res);
+                println!("{}", &message);
+                return Err(());
+            }
+
+            Ok(())
+        });
+    }
+
+
+    pub fn run_against_control<T>(&self, threads: usize)
+    where
+        T: TargetWithControl<Rng = StdRng>,
+    {
+        _run(threads, move |mutator| {
+            let target = T::new();
+
+            let input = target.generate_next(mutator);
+
+            let res = target.compare(&input);
+
+            if res.is_err() {
+                let message = format!("{:?} {:?}", input, res);
+                println!("{}", &message);
+                return Err(());
+            }
+
+            Ok(())
+        });
+    }
+}
+
+pub(crate) fn _run<F>(threads: usize, callback: F)
 where
     F: Fn(&mut Mutator<StdRng>) -> Result<(), ()> + Send + Sync + Copy + 'static
 {
@@ -59,47 +111,4 @@ where
 
     println!("Finished in {} iterations, {} failed iterations", driver.num_iterations(), driver.num_failed_iterations());
 
-}
-
-pub fn run<T>(threads: usize)
-where
-    T: TargetWithControl<Rng = StdRng>,
-{
-    _run(threads, move |mutator| {
-        let target = T::new();
-
-        let input = target.generate_next(mutator);
-
-        let res = target.run_experimental(&input);
-
-        if res.is_err() {
-            let message = format!("{:?} {:?}", input, res);
-            println!("{}", &message);
-            return Err(());
-        }
-
-        Ok(())
-    });
-}
-
-
-pub fn run_against_control<T>(threads: usize)
-where
-    T: TargetWithControl<Rng = StdRng>,
-{
-    _run(threads, move |mutator| {
-        let target = T::new();
-
-        let input = target.generate_next(mutator);
-
-        let res = target.compare(&input);
-
-        if res.is_err() {
-            let message = format!("{:?} {:?}", input, res);
-            println!("{}", &message);
-            return Err(());
-        }
-
-        Ok(())
-    });
 }
