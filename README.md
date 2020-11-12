@@ -8,8 +8,8 @@ Simple precompile fuzzer with geth bindings.
 - Implement generation for the precompile input
 - Implement the `Target` trait on a new struct
 - Optionally: implement the `TargetWithControl` to compare output
-- Future: `Target::generate()` will returna a `Vec<Result<_, _>>` to
-    allow multiple experimental runs (e.g. geth vs parity)
+- Future: `Target::run_experimental()` will returna a `Vec<Result<_, _>>` to
+    allow differential experimental runs (e.g. geth vs parity)
 
 See `src/targets/mod.rs` for an example of the Identity precompile
 
