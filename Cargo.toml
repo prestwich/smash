@@ -1,0 +1,21 @@
+[package]
+name = "smash"
+version = "0.1.0"
+authors = ["James Prestwich <prestwich@clabs.co>"]
+edition = "2018"
+build = "build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lain = "0.5"
+ctrlc = "3.1"
+rand = "0.7.3"
+console = "0.12"
+hex = "0.4"
+
+[[bin]]
+name = "identity"
+path = "bin/identity.rs"
+test = false
+bench = false
