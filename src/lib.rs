@@ -10,5 +10,5 @@ pub mod targets;
 /// geth bindings
 pub mod geth;
 
-// /// celo bindings
-// pub mod celo;
+/// celo bindings
+pub mod celo;
