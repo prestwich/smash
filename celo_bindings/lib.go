@@ -13,8 +13,8 @@ const (
 	maxErrLen    = 256
 )
 
-//export CRunGethPrecompile
-func CRunGethPrecompile(op C.char, i *C.char, iLen uint32, o *C.char, oLen *uint32, e *C.char, eLen *uint32) C.int {
+//export CRunCeloPrecompile
+func CRunCeloPrecompile(op C.char, i *C.char, iLen uint32, o *C.char, oLen *uint32, e *C.char, eLen *uint32) C.int {
 
 	iBuff := C.GoBytes(unsafe.Pointer(i), C.int(iLen))
 	oBuff := (*[maxOutputLen]byte)(unsafe.Pointer(o))
@@ -26,7 +26,7 @@ func CRunGethPrecompile(op C.char, i *C.char, iLen uint32, o *C.char, oLen *uint
 	precompilesMap := vm.PrecompiledContractsIstanbul
 
 	if precompile, ok := precompilesMap[common.BytesToAddress([]byte{uint8(op)})]; ok {
-		res, err = precompile.Run(iBuff)
+		res, _, err = precompile.Run(iBuff, common.Address{0}, nil, 1_000_000)
 
 		if err != nil {
 			errDescr := err.Error()

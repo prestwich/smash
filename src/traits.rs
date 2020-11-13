@@ -15,11 +15,17 @@ pub enum ComparisonError {
 
 impl ComparisonError {
     fn strings(&self) -> (String, String) {
+        let wrap_err = |e: &str| -> String {
+            let mut s = "Err:\t".to_owned();
+            s.push_str(e);
+            s
+        };
+
         match self {
             ComparisonError::OkNotEqual(left, right) => (hex::encode(&left), hex::encode(&right)),
-            ComparisonError::ErrNotEqual(left, right) => (left.clone(), right.clone()),
-            ComparisonError::LeftErr(left, right) => (left.clone(), hex::encode(&right)),
-            ComparisonError::RightErr(left, right) => (hex::encode(left), right.clone()),
+            ComparisonError::ErrNotEqual(left, right) => (wrap_err(left), wrap_err(right)),
+            ComparisonError::LeftErr(left, right) => (wrap_err(left), hex::encode(&right)),
+            ComparisonError::RightErr(left, right) => (hex::encode(left), wrap_err(right)),
             _ => panic!(),
         }
     }
@@ -28,7 +34,7 @@ impl ComparisonError {
 impl std::fmt::Display for ComparisonError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if *self == ComparisonError::NoComp {
-            write!(f, "ComparisonError::NoComp")
+            write!(f, "\nComparisonError::NoComp")
         } else {
             let (left, right) = self.strings();
             writeln!(f, "ComparisonError {{")?;
@@ -46,7 +52,7 @@ pub trait Target: Send + Sync {
     fn new() -> Self;
     fn name() -> &'static str;
 
-    fn run_experimental(&self, input: &[u8]) -> Result<Vec<u8>, String>;
+    fn run_experimental(&self, input: &[u8]) -> Vec<Result<Vec<u8>, String>>;
 
     // Ought to be overriden in most cases
     fn generate(&self, mutator: &mut Mutator<Self::Rng>) -> Self::Intermediate {
@@ -60,7 +66,7 @@ pub trait Target: Send + Sync {
         buf
     }
 
-    fn run_next_experimental(&self, mutator: &mut Mutator<Self::Rng>) -> Result<Vec<u8>, String> {
+    fn run_next_experimental(&self, mutator: &mut Mutator<Self::Rng>) -> Vec<Result<Vec<u8>, String>> {
         let buf = self.generate_next(mutator);
         self.run_experimental(&buf)
     }
@@ -69,34 +75,38 @@ pub trait Target: Send + Sync {
 pub trait TargetWithControl: Target {
     fn run_control(&self, input: &[u8]) -> Result<Vec<u8>, String>;
 
-    fn compare(&self, input: &[u8]) -> Result<(), ComparisonError> {
-        let a = self.run_experimental(input);
-        let b = self.run_control(input);
+    fn compare(&self, input: &[u8]) -> Vec<Result<(), ComparisonError>> {
+        let experimental = self.run_experimental(input);
+        let control = self.run_control(input);
 
-        match (a, b) {
-            (Ok(left), Ok(right)) => {
-                if left == right {
-                    Ok(())
-                } else {
-                    Err(ComparisonError::OkNotEqual(left, right))
+        experimental.into_iter().map(|a| {
+            let c = control.clone();
+            match (a, c) {
+                (Ok(left), Ok(right)) => {
+                    if left == right {
+                        Ok(())
+                    } else {
+                        Err(ComparisonError::OkNotEqual(left, right))
+                    }
+                }
+                (Err(left), Ok(right)) => Err(ComparisonError::LeftErr(left, right)),
+                (Ok(left), Err(right)) => Err(ComparisonError::RightErr(left, right)),
+                (Err(left), Err(right)) => {
+                    if left == right {
+                        Ok(())
+                    } else {
+                        Err(ComparisonError::ErrNotEqual(left, right))
+                    }
                 }
             }
-            (Err(left), Ok(right)) => Err(ComparisonError::LeftErr(left, right)),
-            (Ok(left), Err(right)) => Err(ComparisonError::RightErr(left, right)),
-            (Err(left), Err(right)) => {
-                if left == right {
-                    Ok(())
-                } else {
-                    Err(ComparisonError::ErrNotEqual(left, right))
-                }
-            }
-        }
+        })
+        .collect()
     }
 
     fn compare_next_experimental(
         &self,
         mutator: &mut Mutator<Self::Rng>,
-    ) -> Result<(), ComparisonError> {
+    ) -> Vec<Result<(), ComparisonError>> {
         let buf = self.generate_next(mutator);
         self.compare(&buf)
     }

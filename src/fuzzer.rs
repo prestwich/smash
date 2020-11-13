@@ -1,3 +1,4 @@
+use hex;
 use lain::{prelude::*, rand::rngs::StdRng};
 
 use crate::traits::TargetWithControl;
@@ -21,16 +22,25 @@ impl Fuzzer {
 
             let res = target.run_experimental(&input);
 
-            if res.is_err() {
-                let message = format!("{:?} {:?}", input, res);
+            let errs = res.iter().filter(|r| r.is_err());
+
+            let mut is_err = false;
+            errs.for_each(|e| {
+                let message = format!(
+                    "Error on input:\n\t{}\n{}",
+                    hex::encode(&input),
+                    e.as_ref().unwrap_err()
+                );
                 println!("{}", &message);
+                is_err = true;
+            });
+            if is_err {
                 return Err(());
             }
 
             Ok(())
         });
     }
-
 
     pub fn run_against_control<T>(&self, threads: usize)
     where
@@ -43,9 +53,19 @@ impl Fuzzer {
 
             let res = target.compare(&input);
 
-            if res.is_err() {
-                let message = format!("{:?} {:?}", input, res);
+            let errs = res.iter().filter(|r| r.is_err());
+
+            let mut is_err = false;
+            errs.for_each(|e| {
+                let message = format!(
+                    "Error on input:\n\t{}\n{}",
+                    hex::encode(&input),
+                    e.as_ref().unwrap_err()
+                );
                 println!("{}", &message);
+                is_err = true;
+            });
+            if is_err {
                 return Err(());
             }
 
@@ -56,7 +76,7 @@ impl Fuzzer {
 
 pub(crate) fn _run<F>(threads: usize, callback: F)
 where
-    F: Fn(&mut Mutator<StdRng>) -> Result<(), ()> + Send + Sync + Copy + 'static
+    F: Fn(&mut Mutator<StdRng>) -> Result<(), ()> + Send + Sync + Copy + 'static,
 {
     let mut driver = lain::driver::FuzzerDriver::<()>::new(threads);
     driver.set_seed(42);
@@ -73,16 +93,15 @@ where
     })
     .expect("couldn't set CTRL-C handler");
 
-
-    lain::driver::start_fuzzer(driver.clone(), move|mutator, _ctx: &mut (), _| {
+    lain::driver::start_fuzzer(driver.clone(), move |mutator, _ctx: &mut (), _| {
         callback(mutator)
     });
 
     let progress_driver = driver.clone();
 
     let progress_thread = std::thread::spawn(move || {
-        use console::Term;
         use console::Style;
+        use console::Term;
 
         let green = Style::new().green();
         let red = Style::new().red();
@@ -109,6 +128,9 @@ where
     driver.join_threads();
     progress_thread.join().unwrap();
 
-    println!("Finished in {} iterations, {} failed iterations", driver.num_iterations(), driver.num_failed_iterations());
-
+    println!(
+        "Finished in {} iterations, {} failed iterations",
+        driver.num_iterations(),
+        driver.num_failed_iterations()
+    );
 }

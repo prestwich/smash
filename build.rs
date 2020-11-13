@@ -12,6 +12,7 @@ fn main() {
     println!("cargo:rustc-link-search=native={}", out_dir);
 
     println!("cargo:rustc-link-lib=static=callgeth");
+    println!("cargo:rustc-link-lib=static=callcelo");
     Command::new("touch").args(&["build.rs"]).status().unwrap();
     Command::new("touch").args(&["make.sh"]).status().unwrap();
 }

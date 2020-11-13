@@ -1,5 +1,5 @@
 extern "C" {
-    pub fn CRunGethPrecompile(
+    pub fn CRunCeloPrecompile(
         op: ::std::os::raw::c_char,
         i: *const ::std::os::raw::c_char,
         i_len: u32,
@@ -26,7 +26,7 @@ pub fn run_precompile(address: u8, input: &[u8]) -> Result<Vec<u8>, String> {
     let mut error_description_len = 0u32;
 
     let is_error = unsafe {
-        CRunGethPrecompile(
+        CRunCeloPrecompile(
             raw_operation_value,
             raw_input,
             input_len,
