@@ -16,7 +16,7 @@ impl Fuzzer {
         T: TargetWithControl<Rng = StdRng>,
     {
         _run(threads, move |mutator| {
-            let target = T::new();
+            let mut target = T::new();
 
             let input = target.generate_next(mutator);
 
@@ -47,7 +47,7 @@ impl Fuzzer {
         T: TargetWithControl<Rng = StdRng>,
     {
         _run(threads, move |mutator| {
-            let target = T::new();
+            let mut target = T::new();
 
             let input = target.generate_next(mutator);
 

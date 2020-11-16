@@ -1,27 +1,30 @@
 use crate::{
-    celo,
-    geth,
+    celo::Celo,
+    geth::Geth,
     traits::{Target, TargetWithControl},
 };
 
-pub struct IdentityPrecompile;
+pub struct IdentityPrecompile(
+    Celo,
+    Geth
+);
 
 impl Target for IdentityPrecompile {
     type Intermediate = Vec<u8>;
     type Rng = lain::rand::rngs::StdRng;
 
     fn new() -> Self {
-        Self
+        Self(Celo::default(), Geth::default())
     }
 
     fn name() -> &'static str {
         "identity"
     }
 
-    fn run_experimental(&self, input: &[u8]) -> Vec<Result<Vec<u8>, String>> {
+    fn run_experimental(&mut self, input: &[u8]) -> Vec<Result<Vec<u8>, String>> {
         vec![
-            geth::run_precompile(4u8, input),
-            celo::run_precompile(4u8, input),
+            self.0.run_precompile(4u8, input),
+            self.1.run_precompile(4u8, input),
         ]
     }
 }

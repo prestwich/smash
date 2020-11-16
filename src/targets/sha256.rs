@@ -1,28 +1,32 @@
 use sha2::Digest;
+
 use crate::{
-    celo,
-    geth,
+    celo::Celo,
+    geth::Geth,
     traits::{Target, TargetWithControl}
 };
 
-pub struct Sha256Precompile;
+pub struct Sha256Precompile(
+    Celo,
+    Geth
+);
 
 impl Target for Sha256Precompile {
     type Intermediate = Vec<u8>;
     type Rng = lain::rand::rngs::StdRng;
 
     fn new() -> Self {
-        Self
+        Self(Celo::default(), Geth::default())
     }
 
     fn name() -> &'static str {
         "sha256"
     }
 
-    fn run_experimental(&self, input: &[u8]) -> Vec<Result<Vec<u8>, String>> {
+    fn run_experimental(&mut self, input: &[u8]) -> Vec<Result<Vec<u8>, String>> {
         vec![
-            geth::run_precompile(2u8, input),
-            celo::run_precompile(2u8, input),
+            self.0.run_precompile(2u8, input),
+            self.1.run_precompile(2u8, input),
         ]
     }
 }

@@ -1,19 +1,28 @@
-use lazy_static::lazy_static;
-
 use std::{
     io::{Read, Result as IoResult, Write},
     process::{Child, Command, Stdio},
-    sync::Mutex,
 };
 
-lazy_static! {
-    static ref GETH: Mutex<Child> = Mutex::new(
-        Command::new("./call_geth/call_geth")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()
-            .expect("!child")
-    );
+pub(crate) struct Geth(Child);
+
+impl Default for Geth {
+    fn default() -> Self {
+        Geth(Command::new("./call_geth/call_geth")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("!child"))
+    }
+}
+
+impl Geth {
+    pub fn run_precompile(&mut self, address: u8, input: &[u8]) -> Result<Vec<u8>, String> {
+        let stdin = self.0.stdin.as_mut().expect("!stdin");
+        write_precompile_call(stdin, address, input).unwrap();
+
+        let stdout = self.0.stdout.as_mut().expect("!stdout");
+        read_precompile_result(stdout)
+    }
 }
 
 fn write_precompile_call<W>(w: &mut W, address: u8, buf: &[u8]) -> IoResult<()>
@@ -46,16 +55,4 @@ where
     } else {
         Ok(body)
     }
-}
-
-pub fn run_precompile(address: u8, input: &[u8]) -> Result<Vec<u8>, String> {
-    // println!("{:?}", std::env::current_dir().unwrap());
-    let mut g = GETH.lock().unwrap();
-
-    let stdin = g.stdin.as_mut().expect("!stdin");
-
-    write_precompile_call(stdin, address, input).unwrap();
-
-    let stdout = g.stdout.as_mut().expect("!stdout");
-    read_precompile_result(stdout)
 }
