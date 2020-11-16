@@ -1,5 +1,6 @@
 target/
 Cargo.lock
-geth_bindings/geth_bindings
+call_geth/call_geth
+call_celo/call_celo
 *.a
 *.h

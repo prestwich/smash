@@ -1,5 +1,5 @@
 use crate::{
-    // celo,
+    celo,
     geth,
     traits::{Target, TargetWithControl},
 };
@@ -21,7 +21,7 @@ impl Target for IdentityPrecompile {
     fn run_experimental(&self, input: &[u8]) -> Vec<Result<Vec<u8>, String>> {
         vec![
             geth::run_precompile(4u8, input),
-            // celo::run_precompile(4u8, input),
+            celo::run_precompile(4u8, input),
         ]
     }
 }
