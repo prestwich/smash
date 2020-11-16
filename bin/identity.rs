@@ -7,5 +7,5 @@ use smash::{
 
 
 fn main() {
-    Fuzzer::new().run_against_control::<IdentityPrecompile>(2);
+    Fuzzer::new().run_against_control::<IdentityPrecompile>(4);
 }

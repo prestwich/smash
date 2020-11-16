@@ -1,7 +1,7 @@
 use hex;
 use lain::{prelude::*, rand::rngs::StdRng};
 
-use crate::traits::TargetWithControl;
+use crate::traits::{TargetWithControl, ThreadContext};
 
 #[derive(Copy, Clone, Default, Debug)]
 pub struct Fuzzer;
@@ -15,12 +15,12 @@ impl Fuzzer {
     where
         T: TargetWithControl<Rng = StdRng>,
     {
-        _run(threads, move |mutator| {
+        _run(threads, move |mutator, ctx: &mut ThreadContext| {
             let mut target = T::new();
 
             let input = target.generate_next(mutator);
 
-            let res = target.run_experimental(&input);
+            let res = target.run_experimental(ctx, &input);
 
             let errs = res.iter().filter(|r| r.is_err());
 
@@ -46,12 +46,12 @@ impl Fuzzer {
     where
         T: TargetWithControl<Rng = StdRng>,
     {
-        _run(threads, move |mutator| {
+        _run(threads, move |mutator, ctx| {
             let mut target = T::new();
 
             let input = target.generate_next(mutator);
 
-            let res = target.compare(&input);
+            let res = target.compare(ctx, &input);
 
             let errs = res.iter().filter(|r| r.is_err());
 
@@ -74,9 +74,10 @@ impl Fuzzer {
     }
 }
 
-pub(crate) fn _run<F>(threads: usize, callback: F)
+pub(crate) fn _run<C, F>(threads: usize, callback: F)
 where
-    F: Fn(&mut Mutator<StdRng>) -> Result<(), ()> + Send + Sync + Copy + 'static,
+    C: Default + 'static,
+    F: Fn(&mut Mutator<StdRng>, &mut C) -> Result<(), ()> + Send + Sync + Copy + 'static,
 {
     let mut driver = lain::driver::FuzzerDriver::<()>::new(threads);
     driver.set_seed(42);
@@ -93,8 +94,8 @@ where
     })
     .expect("couldn't set CTRL-C handler");
 
-    lain::driver::start_fuzzer(driver.clone(), move |mutator, _ctx: &mut (), _| {
-        callback(mutator)
+    lain::driver::start_fuzzer(driver.clone(), move |mutator, ctx, _| {
+        callback(mutator, ctx)
     });
 
     let progress_driver = driver.clone();

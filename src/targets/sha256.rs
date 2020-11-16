@@ -3,7 +3,7 @@ use sha2::Digest;
 use crate::{
     celo::Celo,
     geth::Geth,
-    traits::{Target, TargetWithControl}
+    traits::{Target, TargetWithControl, ThreadContext}
 };
 
 pub struct Sha256Precompile(
@@ -23,10 +23,10 @@ impl Target for Sha256Precompile {
         "sha256"
     }
 
-    fn run_experimental(&mut self, input: &[u8]) -> Vec<Result<Vec<u8>, String>> {
+    fn run_experimental(&mut self, ctx: &mut ThreadContext, input: &[u8]) -> Vec<Result<Vec<u8>, String>> {
         vec![
-            self.0.run_precompile(2u8, input),
-            self.1.run_precompile(2u8, input),
+            ctx.geth.run_precompile(2u8, input),
+            ctx.celo.run_precompile(2u8, input),
         ]
     }
 }

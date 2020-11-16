@@ -4,6 +4,14 @@ use lain::{
     traits::{BinarySerialize, NewFuzzed},
 };
 
+use crate::{celo::Celo, geth::Geth};
+
+#[derive(Default)]
+pub struct ThreadContext {
+    pub(crate) celo: Celo,
+    pub(crate) geth: Geth,
+}
+
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum ComparisonError {
     OkNotEqual(Vec<u8>, Vec<u8>),
@@ -60,7 +68,7 @@ pub trait Target: Send + Sync {
     fn new() -> Self;
     fn name() -> &'static str;
 
-    fn run_experimental(&mut self, input: &[u8]) -> Vec<Result<Vec<u8>, String>>;
+    fn run_experimental(&mut self, context: &mut ThreadContext, input: &[u8]) -> Vec<Result<Vec<u8>, String>>;
 
     // Ought to be overriden in most cases
     fn generate(&self, mutator: &mut Mutator<Self::Rng>) -> Self::Intermediate {
@@ -76,18 +84,19 @@ pub trait Target: Send + Sync {
 
     fn run_next_experimental(
         &mut self,
+        context: &mut ThreadContext,
         mutator: &mut Mutator<Self::Rng>,
     ) -> Vec<Result<Vec<u8>, String>> {
         let buf = self.generate_next(mutator);
-        self.run_experimental(&buf)
+        self.run_experimental(context, &buf)
     }
 }
 
 pub trait TargetWithControl: Target {
     fn run_control(&self, input: &[u8]) -> Result<Vec<u8>, String>;
 
-    fn compare(&mut self, input: &[u8]) -> Vec<Result<(), ComparisonError>> {
-        let experimental = self.run_experimental(input);
+    fn compare(&mut self, ctx: &mut ThreadContext, input: &[u8]) -> Vec<Result<(), ComparisonError>> {
+        let experimental = self.run_experimental(ctx, input);
         let control = self.run_control(input);
 
         experimental
@@ -118,9 +127,10 @@ pub trait TargetWithControl: Target {
 
     fn compare_next_experimental(
         &mut self,
+        ctx: &mut ThreadContext,
         mutator: &mut Mutator<Self::Rng>,
     ) -> Vec<Result<(), ComparisonError>> {
         let buf = self.generate_next(mutator);
-        self.compare(&buf)
+        self.compare(ctx, &buf)
     }
 }
