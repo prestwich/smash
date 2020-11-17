@@ -4,7 +4,12 @@ use std::io::Write;
 
 pub mod blake2s;
 
+#[allow(non_snake_case)]
+pub mod blake2Xs;
+
 use blake2s::Blake2sGenOpts;
+use blake2Xs::Blake2XsGenOpts;
+
 
 use crate::traits::{Target, TargetWithControl, ThreadContext, ProduceInvalid};
 
@@ -12,34 +17,41 @@ const SHA_3_256_SELECTOR: u8 = 0x00;
 const SHA_3_512_SELECTOR: u8 = 0x01;
 const KECCAK_512_SELECTOR: u8 = 0x02;
 
+// Update whenever a new variant is added
+const VARIANT_COUNT: u8 = 5;
+
 #[derive(Debug)]
 pub enum CIP20Modes {
     Sha3_256(Vec<u8>),
     Sha3_512(Vec<u8>),
     Keccak512(Vec<u8>),
     Blake2s(Blake2sGenOpts),
+    Blake2Xs(Blake2XsGenOpts),
 }
 
 impl BinarySerialize for CIP20Modes {
-    fn binary_serialize<W: Write, E: ByteOrder>(&self, buffer: &mut W) -> usize {
+    fn binary_serialize<W: Write, E: ByteOrder>(&self, buf: &mut W) -> usize {
         match self {
             CIP20Modes::Sha3_256(preimage) => {
-                buffer.write_all(&[SHA_3_256_SELECTOR]).unwrap();
-                buffer.write_all(preimage).unwrap();
+                buf.write_all(&[SHA_3_256_SELECTOR]).unwrap();
+                buf.write_all(preimage).unwrap();
                 preimage.len() + 1
             }
             CIP20Modes::Sha3_512(preimage) => {
-                buffer.write_all(&[SHA_3_512_SELECTOR]).unwrap();
-                buffer.write_all(preimage).unwrap();
+                buf.write_all(&[SHA_3_512_SELECTOR]).unwrap();
+                buf.write_all(preimage).unwrap();
                 preimage.len() + 1
             }
             CIP20Modes::Keccak512(preimage) => {
-                buffer.write_all(&[KECCAK_512_SELECTOR]).unwrap();
-                buffer.write_all(preimage).unwrap();
+                buf.write_all(&[KECCAK_512_SELECTOR]).unwrap();
+                buf.write_all(preimage).unwrap();
                 preimage.len() + 1
             }
             CIP20Modes::Blake2s(opts) => {
-                opts.binary_serialize::<W, E>(buffer)
+                opts.binary_serialize::<W, E>(buf)
+            }
+            CIP20Modes::Blake2Xs(opts) => {
+                opts.binary_serialize::<W, E>(buf)
             }
         }
     }
@@ -52,10 +64,10 @@ impl NewFuzzed for CIP20Modes {
         let (min, max, weight) = {
             if let Some(range) = constraints {
                 (range.min.unwrap_or(0),
-                range.max.unwrap_or(4),
+                range.max.unwrap_or(VARIANT_COUNT),
                 range.weighted)
             } else {
-                (0, 4, Default::default())
+                (0, VARIANT_COUNT, Default::default())
             }
         };
 
@@ -65,15 +77,10 @@ impl NewFuzzed for CIP20Modes {
             1 => CIP20Modes::Sha3_512(mutator.gen()),
             2 => CIP20Modes::Keccak512(mutator.gen()),
             3 => CIP20Modes::Blake2s(Blake2sGenOpts::Valid(mutator.gen())),
+            4 => CIP20Modes::Blake2Xs(Blake2XsGenOpts::Valid(mutator.gen())),
             _ => panic!("unreachable"),
         }
     }
-}
-
-fn xof_digest_length_to_node_offset(node_offset: u64, xof_digest_length: usize) -> u64 {
-    node_offset as u64
-        | ((xof_digest_length >> 8 & 0xff) as u64) << 32
-        | ((xof_digest_length >> 0 & 0xff) as u64) << 40
 }
 
 pub struct Cip20Precompile;
@@ -113,25 +120,10 @@ impl TargetWithControl for Cip20Precompile {
             CIP20Modes::Keccak512(buf) => Ok(sha3::Keccak512::digest(buf).to_vec()),
             CIP20Modes::Blake2s(
                 Blake2sGenOpts::Valid(opts)
-            ) => Ok(blake2s_simd::Params::new()
-                .hash_length(opts.hash_length as usize)
-                .fanout(opts.fanout)
-                .max_depth(opts.depth)
-                .max_leaf_length(opts.leaf_length)
-                .node_offset(xof_digest_length_to_node_offset(
-                    opts.node_offset as u64,
-                    opts.xof_digest_len as usize,
-                ))
-                .node_depth(opts.node_depth)
-                .inner_hash_length(opts.inner_length as usize)
-                .salt(opts.salt.as_ref())
-                .personal(opts.personalization.as_ref())
-                .key(opts.key.as_ref())
-                .to_state()
-                .update(opts.preimage.as_ref())
-                .finalize()
-                .as_ref()
-                .to_vec()),
+            ) => Ok(opts.run()),
+            CIP20Modes::Blake2Xs(
+                Blake2XsGenOpts::Valid(opts)
+            ) => Ok(opts.run()),
             _ => Err("Error: unknown".to_owned())
         }
     }
