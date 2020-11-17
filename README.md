@@ -6,14 +6,25 @@ This code is largely based on
 [Shamatar's algebraic fuzzer](https://github.com/shamatar/algebraic_fuzzer/).
 His code is used with permission, pending FOSS licensing.
 
+### Status
+
+- identity: working
+- sha2: working
+- cip20: in progress
+
 ### To add a target to this repo:
 
 - Make a new file in `src/targets/`
 - Implement generation for the precompile input
 - Implement the `Target` trait on a new struct, with 1 or more experimental
     run
-- Optionally: implement the `TargetWithControl` to compare output to a control
+    - **Note**: This library expects `Target::generate()` to always produce
+    valid input.
+- Optionally: implement `ProduceInvalid` to test invalid inputs for panics
+    - This enables `Fuzzer::run_invalid()` and `Fuzzer::run_mixed()`
+- Optionally: implement `TargetWithControl` to compare output to a control
     output
+    - This enables `Fuzzer.run_against_control()`
 - Future: `Target::run_experimental()` will returna a `Vec<Result<_, _>>` to
     allow differential experimental runs (e.g. geth vs parity)
 
