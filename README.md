@@ -19,7 +19,7 @@ His code is used with permission, pending FOSS licensing.
 - Implement the `Target` trait on a new struct, with 1 or more experimental
     run
     - **Note**: This library expects `Target::generate()` to always produce
-    valid input.
+    valid input. Thus support for lain `#[derive()]` macros is very limited.
 - Optionally: implement `ProduceInvalid` to test invalid inputs for panics
     - This enables `Fuzzer::run_invalid()` and `Fuzzer::run_mixed()`
 - Optionally: implement `TargetWithControl` to compare output to a control
