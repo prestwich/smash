@@ -7,11 +7,13 @@ pub(crate) struct Geth(Child);
 
 impl Default for Geth {
     fn default() -> Self {
-        Geth(Command::new("./call_geth/call_geth")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("!child"))
+        Geth(
+            Command::new("./call_geth/call_geth")
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .spawn()
+                .expect("!child"),
+        )
     }
 }
 
@@ -42,7 +44,6 @@ where
     let mut body_size = [0u8; 2];
     r.read_exact(&mut body_size).unwrap();
     let body_size = u16::from_be_bytes(body_size) as usize;
-
 
     let mut is_err = [0u8];
     r.read_exact(&mut is_err).unwrap();

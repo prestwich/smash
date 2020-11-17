@@ -7,11 +7,13 @@ pub(crate) struct Celo(Child);
 
 impl Default for Celo {
     fn default() -> Self {
-        Celo(Command::new("./call_celo/call_celo")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("!child"))
+        Celo(
+            Command::new("./call_celo/call_celo")
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .spawn()
+                .expect("!child"),
+        )
     }
 }
 

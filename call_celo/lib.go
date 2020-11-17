@@ -90,6 +90,7 @@ func main() {
 			}
 		} else {
 			outBody = []byte("Precompile does not exist")
+			isErr = true
 		}
 		retToStdOut(outBody, isErr)
 	}

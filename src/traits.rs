@@ -30,9 +30,11 @@ impl ComparisonError {
         };
 
         match self {
-            ComparisonError::OkNotEqual(left, right) => {
-                ("OkNotEqual".to_owned(), hex::encode(&left), hex::encode(&right))
-            }
+            ComparisonError::OkNotEqual(left, right) => (
+                "OkNotEqual".to_owned(),
+                hex::encode(&left),
+                hex::encode(&right),
+            ),
             ComparisonError::ErrNotEqual(left, right) => {
                 ("ErrNotEqual".to_owned(), wrap_err(left), wrap_err(right))
             }
@@ -54,7 +56,7 @@ impl std::fmt::Display for ComparisonError {
         } else {
             let (variant, left, right) = self.strings();
             writeln!(f, "ComparisonError {} {{", variant)?;
-            writeln!(f, "\tleft: {}", left)?;
+            writeln!(f, "\tleft:  {}", left)?;
             writeln!(f, "\tright: {}", right)?;
             writeln!(f, "}}")
         }
@@ -68,7 +70,11 @@ pub trait Target: Send + Sync {
     fn new() -> Self;
     fn name() -> &'static str;
 
-    fn run_experimental(&mut self, context: &mut ThreadContext, input: &[u8]) -> Vec<Result<Vec<u8>, String>>;
+    fn run_experimental(
+        &mut self,
+        context: &mut ThreadContext,
+        input: &[u8],
+    ) -> Vec<Result<Vec<u8>, String>>;
 
     // Ought to be overriden in most cases
     fn generate(&self, mutator: &mut Mutator<Self::Rng>) -> Self::Intermediate {
@@ -92,11 +98,31 @@ pub trait Target: Send + Sync {
     }
 }
 
-pub trait TargetWithControl: Target {
-    fn run_control(&self, input: &[u8]) -> Result<Vec<u8>, String>;
+pub trait ProduceInvalid: Target {
+    fn generate_invalid(&self, mutator: &mut Mutator<Self::Rng>) -> Self::Intermediate;
 
-    fn compare(&mut self, ctx: &mut ThreadContext, input: &[u8]) -> Vec<Result<(), ComparisonError>> {
-        let experimental = self.run_experimental(ctx, input);
+    fn generate_next_invalid(&self, mutator: &mut Mutator<Self::Rng>) -> Vec<u8> {
+        let mut buf = vec![];
+        self.generate_invalid(mutator)
+            .binary_serialize::<_, lain::byteorder::BigEndian>(&mut buf);
+        buf
+    }
+}
+
+pub trait TargetWithControl: Target {
+    fn run_control(&self, input: &<Self as Target>::Intermediate) -> Result<Vec<u8>, String>;
+
+    fn compare(
+        &mut self,
+        ctx: &mut ThreadContext,
+        input: &<Self as Target>::Intermediate,
+    ) -> Vec<Result<(), ComparisonError>> {
+        let mut buf = vec![];
+        input.binary_serialize::<_, lain::byteorder::BigEndian>(&mut buf);
+        let experimental = self.run_experimental(
+            ctx,
+            &buf,
+        );
         let control = self.run_control(input);
 
         experimental
@@ -130,7 +156,7 @@ pub trait TargetWithControl: Target {
         ctx: &mut ThreadContext,
         mutator: &mut Mutator<Self::Rng>,
     ) -> Vec<Result<(), ComparisonError>> {
-        let buf = self.generate_next(mutator);
-        self.compare(ctx, &buf)
+        let case = self.generate(mutator);
+        self.compare(ctx, &case)
     }
 }

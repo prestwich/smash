@@ -1,6 +1,5 @@
-use crate::{
-    traits::{Target, TargetWithControl, ThreadContext},
-};
+use lain::traits::BinarySerialize;
+use crate::traits::{Target, TargetWithControl, ThreadContext};
 
 pub struct IdentityPrecompile;
 
@@ -16,7 +15,11 @@ impl Target for IdentityPrecompile {
         "identity"
     }
 
-    fn run_experimental(&mut self, context: &mut ThreadContext, input: &[u8]) -> Vec<Result<Vec<u8>, String>> {
+    fn run_experimental(
+        &mut self,
+        context: &mut ThreadContext,
+        input: &[u8],
+    ) -> Vec<Result<Vec<u8>, String>> {
         vec![
             context.geth.run_precompile(4u8, input),
             context.celo.run_precompile(4u8, input),
@@ -25,8 +28,9 @@ impl Target for IdentityPrecompile {
 }
 
 impl TargetWithControl for IdentityPrecompile {
-    fn run_control(&self, input: &[u8]) -> Result<Vec<u8>, String> {
-        Ok(input.to_vec())
+    fn run_control(&self, input: &Self::Intermediate) -> Result<Vec<u8>, String> {
+        let mut buf = vec![];
+        input.binary_serialize::<_, lain::byteorder::BigEndian>(&mut buf);
+        Ok(buf)
     }
 }
-

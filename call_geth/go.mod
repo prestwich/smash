@@ -1,4 +1,4 @@
-module github.com/prestwich/geth_bindings
+module github.com/prestwich/call_geth
 
 go 1.15
 

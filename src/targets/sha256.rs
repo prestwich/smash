@@ -1,15 +1,14 @@
 use sha2::Digest;
 
+use lain::traits::BinarySerialize;
+
 use crate::{
     celo::Celo,
     geth::Geth,
-    traits::{Target, TargetWithControl, ThreadContext}
+    traits::{Target, TargetWithControl, ThreadContext},
 };
 
-pub struct Sha256Precompile(
-    Celo,
-    Geth
-);
+pub struct Sha256Precompile(Celo, Geth);
 
 impl Target for Sha256Precompile {
     type Intermediate = Vec<u8>;
@@ -23,7 +22,11 @@ impl Target for Sha256Precompile {
         "sha256"
     }
 
-    fn run_experimental(&mut self, ctx: &mut ThreadContext, input: &[u8]) -> Vec<Result<Vec<u8>, String>> {
+    fn run_experimental(
+        &mut self,
+        ctx: &mut ThreadContext,
+        input: &[u8],
+    ) -> Vec<Result<Vec<u8>, String>> {
         vec![
             ctx.geth.run_precompile(2u8, input),
             ctx.celo.run_precompile(2u8, input),
@@ -32,7 +35,9 @@ impl Target for Sha256Precompile {
 }
 
 impl TargetWithControl for Sha256Precompile {
-    fn run_control(&self, input: &[u8]) -> Result<Vec<u8>, String> {
-        Ok(sha2::Sha256::digest(input).to_vec())
+    fn run_control(&self, input: &Self::Intermediate) -> Result<Vec<u8>, String> {
+        let mut buf = vec![];
+        input.binary_serialize::<_, lain::byteorder::BigEndian>(&mut buf);
+        Ok(sha2::Sha256::digest(&buf).to_vec())
     }
 }

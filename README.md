@@ -10,8 +10,10 @@ His code is used with permission, pending FOSS licensing.
 
 - Make a new file in `src/targets/`
 - Implement generation for the precompile input
-- Implement the `Target` trait on a new struct
-- Optionally: implement the `TargetWithControl` to compare output
+- Implement the `Target` trait on a new struct, with 1 or more experimental
+    run
+- Optionally: implement the `TargetWithControl` to compare output to a control
+    output
 - Future: `Target::run_experimental()` will returna a `Vec<Result<_, _>>` to
     allow differential experimental runs (e.g. geth vs parity)
 

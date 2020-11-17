@@ -1,7 +1,6 @@
-use hex;
 use lain::{prelude::*, rand::rngs::StdRng};
 
-use crate::traits::{TargetWithControl, ThreadContext};
+use crate::traits::{ProduceInvalid, Target, TargetWithControl, ThreadContext};
 
 #[derive(Copy, Clone, Default, Debug)]
 pub struct Fuzzer;
@@ -13,15 +12,12 @@ impl Fuzzer {
 
     pub fn run<T>(&self, threads: usize)
     where
-        T: TargetWithControl<Rng = StdRng>,
+        T: Target<Rng = StdRng>,
     {
         _run(threads, move |mutator, ctx: &mut ThreadContext| {
             let mut target = T::new();
-
             let input = target.generate_next(mutator);
-
             let res = target.run_experimental(ctx, &input);
-
             let errs = res.iter().filter(|r| r.is_err());
 
             let mut is_err = false;
@@ -42,6 +38,75 @@ impl Fuzzer {
         });
     }
 
+    // produce invalid inputs to try to get panics
+    pub fn run_invalid<T>(&self, threads: usize)
+    where
+        T: ProduceInvalid<Rng = StdRng>,
+    {
+        _run(threads, move |mutator, ctx| {
+            let mut target = T::new();
+            let input = target.generate_next_invalid(mutator);
+            target.run_experimental(ctx, &input);
+
+            Ok(())
+
+            // let not_errs = res.into_iter().filter(|r| !r.is_err());
+
+            // let mut is_not_err = false;
+            // not_errs.for_each(|r| {
+            //     let message = format!(
+            //         "Expected error on input:\n\t{}\nGot:\n\t{}",
+            //         hex::encode(&input),
+            //         hex::encode(&r.unwrap()),
+            //     );
+
+            //     println!("{}", &message);
+            //     is_not_err = true;
+            // });
+
+            // if is_not_err {
+            //     Err(())
+            // } else {
+            //     Ok(())
+            // }
+        });
+    }
+
+    pub fn run_mixed<T>(&self, threads: usize)
+    where
+        T: ProduceInvalid<Rng = StdRng>,
+    {
+        _run(threads, move |mutator, ctx| {
+            let mut target = T::new();
+
+            if mutator.gen_chance(0.1) {
+                let input = target.generate_next_invalid(mutator);
+                target.run_experimental(ctx, &input);
+                Ok(())
+            } else {
+                let input = target.generate_next(mutator);
+                let res = target.run_experimental(ctx, &input);
+                let errs = res.iter().filter(|r| r.is_err());
+
+                let mut is_err = false;
+                errs.for_each(|e| {
+                    let message = format!(
+                        "Error on input:\n\t{}\n{}",
+                        hex::encode(&input),
+                        e.as_ref().unwrap_err()
+                    );
+                    println!("{}", &message);
+                    is_err = true;
+                });
+                if is_err {
+                    return Err(());
+                }
+
+                Ok(())
+            }
+        })
+    }
+
     pub fn run_against_control<T>(&self, threads: usize)
     where
         T: TargetWithControl<Rng = StdRng>,
@@ -49,27 +114,29 @@ impl Fuzzer {
         _run(threads, move |mutator, ctx| {
             let mut target = T::new();
 
-            let input = target.generate_next(mutator);
-
+            let input = target.generate(mutator);
             let res = target.compare(ctx, &input);
 
             let errs = res.iter().filter(|r| r.is_err());
 
             let mut is_err = false;
             errs.for_each(|e| {
+                let mut buf = vec![];
+                input.binary_serialize::<_, lain::byteorder::BigEndian>(&mut buf);
                 let message = format!(
                     "Error on input:\n\t{}\n{}",
-                    hex::encode(&input),
+                    hex::encode(&buf),
                     e.as_ref().unwrap_err()
                 );
                 println!("{}", &message);
                 is_err = true;
             });
-            if is_err {
-                return Err(());
-            }
 
-            Ok(())
+            if is_err {
+                Err(())
+            } else {
+                Ok(())
+            }
         });
     }
 }

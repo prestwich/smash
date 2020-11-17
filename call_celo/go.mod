@@ -1,4 +1,4 @@
-module github.com/prestwich/celo_bindings
+module github.com/prestwich/call_celo
 
 go 1.15
 
@@ -23,4 +23,4 @@ require (
 	golang.org/x/text v0.3.4 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/celo-org/celo-blockchain v1.1.0
+replace github.com/ethereum/go-ethereum => github.com/prestwich/celo-blockchain v0.0.0-cip20-alpha

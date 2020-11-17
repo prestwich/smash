@@ -52,6 +52,7 @@ github.com/btcsuite/snappy-go v0.0.0-20151229074030-0bdef8d06723/go.mod h1:8woku
 github.com/btcsuite/snappy-go v1.0.0/go.mod h1:8woku9dyThutzjeg+3xrA5iCpBRH8XEEg3lh6TiUghc=
 github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792/go.mod h1:ghJtEyQwv5/p4Mg4C0fgbePVuGr935/5ddU9Z3TmDRY=
 github.com/btcsuite/winsvc v1.0.0/go.mod h1:jsenWakMcC0zFBFurPLEAyrnc/teJEM1O46fmI40EZs=
+github.com/buraksezer/consistent v0.0.0-20191006190839-693edf70fd72/go.mod h1:OEE5igu/CDjGegM1Jn6ZMo7R6LlV/JChAkjfQQIRLpg=
 github.com/celo-org/celo-blockchain v1.1.0 h1:9wRNrKv7szF2/u89KYxh8I/4Hf4tip0Tc4mlldM1rYM=
 github.com/celo-org/celo-blockchain v1.1.0/go.mod h1:HlnsEAZk+dT+sKFQTxFv42J7fnlhBrIPlko0EE/7k7s=
 github.com/celo-org/celo-bls-go v0.1.6/go.mod h1:eXUCLXu5F1yfd3M+3VaUk5ZUXaA0sLK2rWdLC1Cfaqo=
@@ -70,6 +71,10 @@ github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d/go.mod h1:ma
 github.com/davecgh/go-spew v0.0.0-20171005155431-ecdeabc65495/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/dchest/blake2s v1.0.0 h1:gHCBR8ecSImY/Nwk7X0Q2KJAJcpI/HSkUAQDi8MCP4Q=
+github.com/dchest/blake2s v1.0.0/go.mod h1:GrKn2Lc4hWqAwRrbneYuvZ6kugiJMrjk3HHtcJkEhbs=
+github.com/dchest/blake2xs v0.0.0-20170308103455-3b214a08f9ff h1:IfMAo+gVtaZXGLVcY1QpFzBLiKjLFS0fT46M4seBaBY=
+github.com/dchest/blake2xs v0.0.0-20170308103455-3b214a08f9ff/go.mod h1:pzw0CDi3O81X6e1sXfEZu0D5lKqr+6ig3dUmXJ0tfOU=
 github.com/deckarep/golang-set v0.0.0-20180603214616-504e848d77ea/go.mod h1:93vsz/8Wt4joVM7c2AVqh+YRMiUSc14yDtF28KmMOgQ=
 github.com/deckarep/golang-set v1.7.1 h1:SCQV0S6gTtp6itiFrTqI+pfmJ4LN85S1YzhDf9rTHJQ=
 github.com/deckarep/golang-set v1.7.1/go.mod h1:93vsz/8Wt4joVM7c2AVqh+YRMiUSc14yDtF28KmMOgQ=
@@ -187,6 +192,8 @@ github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/prestwich/celo-blockchain v0.0.0-cip20-alpha h1:InKM64h4I14GPp/YerRTox5N/VUUS67Sj87/gtV8Og4=
+github.com/prestwich/celo-blockchain v0.0.0-cip20-alpha/go.mod h1:FTsliePkFELjdWkYf1sEtukWCKu23L5p2iNfLyXZEkc=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
 github.com/prometheus/client_golang v1.0.0/go.mod h1:db9x61etRT2tGnBNRi70OPL5FsnadC4Ky3P0J6CfImo=
 github.com/prometheus/client_golang v1.4.1/go.mod h1:e9GMxYsXl05ICDXkRhurwBS4Q3OK1iX/F2sw+iXX5zU=
