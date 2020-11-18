@@ -4,11 +4,7 @@ use std::io::Write;
 
 pub mod blake2s;
 
-#[allow(non_snake_case)]
-pub mod blake2Xs;
-
 use blake2s::Blake2sGenOpts;
-use blake2Xs::Blake2XsGenOpts;
 
 
 use crate::traits::{Target, TargetWithControl, ThreadContext, ProduceInvalid};
@@ -18,7 +14,7 @@ const SHA_3_512_SELECTOR: u8 = 0x01;
 const KECCAK_512_SELECTOR: u8 = 0x02;
 
 // Update whenever a new variant is added
-const VARIANT_COUNT: u8 = 5;
+const VARIANT_COUNT: u8 = 4;
 
 #[derive(Debug)]
 pub enum CIP20Modes {
@@ -26,7 +22,6 @@ pub enum CIP20Modes {
     Sha3_512(Vec<u8>),
     Keccak512(Vec<u8>),
     Blake2s(Blake2sGenOpts),
-    Blake2Xs(Blake2XsGenOpts),
 }
 
 impl BinarySerialize for CIP20Modes {
@@ -48,9 +43,6 @@ impl BinarySerialize for CIP20Modes {
                 preimage.len() + 1
             }
             CIP20Modes::Blake2s(opts) => {
-                opts.binary_serialize::<W, E>(buf)
-            }
-            CIP20Modes::Blake2Xs(opts) => {
                 opts.binary_serialize::<W, E>(buf)
             }
         }
@@ -77,7 +69,6 @@ impl NewFuzzed for CIP20Modes {
             1 => CIP20Modes::Sha3_512(mutator.gen()),
             2 => CIP20Modes::Keccak512(mutator.gen()),
             3 => CIP20Modes::Blake2s(Blake2sGenOpts::Valid(mutator.gen())),
-            4 => CIP20Modes::Blake2Xs(Blake2XsGenOpts::Valid(mutator.gen())),
             _ => panic!("unreachable"),
         }
     }
@@ -120,9 +111,6 @@ impl TargetWithControl for Cip20Precompile {
             CIP20Modes::Keccak512(buf) => Ok(sha3::Keccak512::digest(buf).to_vec()),
             CIP20Modes::Blake2s(
                 Blake2sGenOpts::Valid(opts)
-            ) => Ok(opts.run()),
-            CIP20Modes::Blake2Xs(
-                Blake2XsGenOpts::Valid(opts)
             ) => Ok(opts.run()),
             _ => Err("Error: unknown".to_owned())
         }
