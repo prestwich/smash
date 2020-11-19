@@ -5,16 +5,23 @@ use lain::{
 };
 
 use crate::{
-    celo::Celo,
+    call::Caller,
     errors::{CommunicationError, CommunicationResult, ComparisonError, ComparisonResult},
     fuzzer::Fuzzer,
-    geth::Geth,
 };
 
-#[derive(Default)]
 pub struct ThreadContext {
-    pub(crate) celo: Celo,
-    pub(crate) geth: Geth,
+    pub(crate) celo: Caller,
+    pub(crate) geth: Caller,
+}
+
+impl Default for ThreadContext {
+    fn default() -> Self {
+        Self {
+            celo: Caller::new_celo(),
+            geth: Caller::new_geth(),
+        }
+    }
 }
 
 pub trait Target: Send + Sync + Default {

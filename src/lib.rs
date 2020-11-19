@@ -7,11 +7,8 @@ pub mod fuzzer;
 /// Fuzzer target implementations
 pub mod targets;
 
-/// geth bindings
-pub mod geth;
-
-/// celo bindings
-pub mod celo;
+/// celo and geth process manager
+pub mod call;
 
 /// Error types
 pub mod errors;

@@ -1,30 +1,58 @@
 use std::{
+    fmt,
     io::{Read, Write},
     process::{Child, Command, Stdio},
 };
 
 use crate::errors::{CommunicationError, CommunicationResult};
 
-pub(crate) struct Geth(Child);
+pub(crate) struct Caller(&'static str, Child);
 
-impl Default for Geth {
+impl fmt::Debug for Caller {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Caller")
+         .field("command", &self.0)
+         .finish()
+    }
+}
+
+impl Drop for Caller {
+    fn drop(&mut self) {
+        self.1.kill().expect("wasn't running");
+    }
+}
+
+impl Default for Caller {
     fn default() -> Self {
-        Geth(
-            Command::new("./call_geth/call_geth")
+        Self::new_geth()
+    }
+}
+
+impl Caller {
+    fn new(cmd: &'static str) -> Self {
+        Caller(
+            cmd,
+            Command::new(cmd)
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
                 .spawn()
                 .expect("!child"),
         )
     }
-}
 
-impl Geth {
+    pub fn new_celo() -> Self {
+        Self::new("./call_celo/call_celo")
+    }
+
+    pub fn new_geth() -> Self {
+        Self::new("./call_geth/call_geth")
+    }
+
     pub fn run_precompile(&mut self, address: u8, input: &[u8]) -> CommunicationResult<Vec<u8>> {
-        let stdin = self.0.stdin.as_mut().expect("!stdin");
+        let stdin = self.1.stdin.as_mut().expect("!stdin");
         write_precompile_call(stdin, address, input)?;
 
-        let stdout = self.0.stdout.as_mut().expect("!stdout");
+        let stdout = self.1.stdout.as_mut().expect("!stdout");
         read_precompile_result(stdout)
     }
 }
