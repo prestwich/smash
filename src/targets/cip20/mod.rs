@@ -6,7 +6,10 @@ pub mod blake2s;
 
 use blake2s::Blake2sGenOpts;
 
-use crate::traits::{ProduceInvalid, Target, TargetWithControl, ThreadContext};
+use crate::{
+    errors::CommunicationResult,
+    traits::{ProduceInvalid, Target, TargetWithControl, ThreadContext}
+};
 
 const SHA_3_256_SELECTOR: u8 = 0x00;
 const SHA_3_512_SELECTOR: u8 = 0x01;
@@ -94,7 +97,7 @@ impl Target for Cip20Precompile {
         &mut self,
         context: &mut ThreadContext,
         input: &[u8],
-    ) -> Vec<Result<Vec<u8>, String>> {
+    ) -> Vec<CommunicationResult<Vec<u8>>> {
         vec![context.celo.run_precompile(0xf3, input)]
     }
 }
@@ -112,7 +115,7 @@ impl TargetWithControl for Cip20Precompile {
             CIP20Modes::Sha3_512(buf) => Ok(sha3::Sha3_512::digest(buf).to_vec()),
             CIP20Modes::Keccak512(buf) => Ok(sha3::Keccak512::digest(buf).to_vec()),
             CIP20Modes::Blake2s(Blake2sGenOpts::Valid(opts)) => Ok(opts.run()),
-            _ => Err("Error: unknown".to_owned()),
+            _ => panic!("unreachable"),
         }
     }
 }

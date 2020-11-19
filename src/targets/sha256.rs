@@ -3,6 +3,7 @@ use sha2::Digest;
 use lain::traits::BinarySerialize;
 
 use crate::{
+    errors::CommunicationResult,
     celo::Celo,
     geth::Geth,
     traits::{Target, TargetWithControl, ThreadContext},
@@ -26,7 +27,7 @@ impl Target for Sha256Precompile {
         &mut self,
         ctx: &mut ThreadContext,
         input: &[u8],
-    ) -> Vec<Result<Vec<u8>, String>> {
+    ) -> Vec<CommunicationResult<Vec<u8>>> {
         vec![
             ctx.geth.run_precompile(2u8, input),
             ctx.celo.run_precompile(2u8, input),

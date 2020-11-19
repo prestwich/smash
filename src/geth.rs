@@ -1,7 +1,9 @@
 use std::{
-    io::{Read, Result as IoResult, Write},
+    io::{Read, Write},
     process::{Child, Command, Stdio},
 };
+
+use crate::errors::{CommunicationError, CommunicationResult};
 
 pub(crate) struct Geth(Child);
 
@@ -18,16 +20,16 @@ impl Default for Geth {
 }
 
 impl Geth {
-    pub fn run_precompile(&mut self, address: u8, input: &[u8]) -> Result<Vec<u8>, String> {
+    pub fn run_precompile(&mut self, address: u8, input: &[u8]) -> CommunicationResult<Vec<u8>> {
         let stdin = self.0.stdin.as_mut().expect("!stdin");
-        write_precompile_call(stdin, address, input).map_err(|_| "failed to write".to_owned())?;
+        write_precompile_call(stdin, address, input)?;
 
         let stdout = self.0.stdout.as_mut().expect("!stdout");
         read_precompile_result(stdout)
     }
 }
 
-fn write_precompile_call<W>(w: &mut W, address: u8, buf: &[u8]) -> IoResult<()>
+fn write_precompile_call<W>(w: &mut W, address: u8, buf: &[u8]) -> CommunicationResult<()>
 where
     W: Write,
 {
@@ -37,25 +39,24 @@ where
     Ok(())
 }
 
-fn read_precompile_result<R>(r: &mut R) -> Result<Vec<u8>, String>
+fn read_precompile_result<R>(r: &mut R) -> CommunicationResult<Vec<u8>>
 where
     R: Read,
 {
     let mut body_size = [0u8; 2];
-    r.read_exact(&mut body_size)
-        .map_err(|_| "failed to read result size".to_owned())?;
+    r.read_exact(&mut body_size)?;
     let body_size = u16::from_be_bytes(body_size) as usize;
 
     let mut is_err = [0u8];
-    r.read_exact(&mut is_err)
-        .map_err(|_| "failed to read result status".to_owned())?;
+    r.read_exact(&mut is_err)?;
 
     let mut body = vec![0u8; body_size];
-    r.read_exact(&mut body[..body_size])
-        .map_err(|_| "failed to read result body".to_owned())?;
+    r.read_exact(&mut body[..body_size])?;
 
     if is_err[0] == 1 {
-        Err(String::from_utf8(body).unwrap())
+        Err(CommunicationError::RemoteError(
+            String::from_utf8(body).unwrap(),
+        ))
     } else {
         Ok(body)
     }

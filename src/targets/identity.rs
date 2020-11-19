@@ -1,5 +1,9 @@
-use crate::traits::{Target, TargetWithControl, ThreadContext};
 use lain::traits::BinarySerialize;
+
+use crate::{
+    errors::CommunicationResult,
+    traits::{Target, TargetWithControl, ThreadContext}
+};
 
 pub struct IdentityPrecompile;
 
@@ -19,7 +23,7 @@ impl Target for IdentityPrecompile {
         &mut self,
         context: &mut ThreadContext,
         input: &[u8],
-    ) -> Vec<Result<Vec<u8>, String>> {
+    ) -> Vec<CommunicationResult<Vec<u8>>> {
         vec![
             context.geth.run_precompile(4u8, input),
             context.celo.run_precompile(4u8, input),

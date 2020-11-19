@@ -12,3 +12,6 @@ pub mod geth;
 
 /// celo bindings
 pub mod celo;
+
+/// Error types
+pub mod errors;

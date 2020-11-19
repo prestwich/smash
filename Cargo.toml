@@ -17,6 +17,7 @@ sha2 = "0.9.2"
 sha3 = "0.9.1"
 lazy_static = "1.4.0"
 blake2s_simd = "0.5.8"
+thiserror = "1.0.22"
 
 [[bin]]
 name = "identity"

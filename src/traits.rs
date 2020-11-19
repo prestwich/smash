@@ -4,63 +4,16 @@ use lain::{
     traits::{BinarySerialize, NewFuzzed},
 };
 
-use crate::{celo::Celo, geth::Geth};
+use crate::{
+    celo::Celo,
+    errors::{CommunicationError, CommunicationResult, ComparisonError, ComparisonResult},
+    geth::Geth,
+};
 
 #[derive(Default)]
 pub struct ThreadContext {
     pub(crate) celo: Celo,
     pub(crate) geth: Geth,
-}
-
-#[derive(Debug, Eq, PartialEq, Clone)]
-pub enum ComparisonError {
-    OkNotEqual(Vec<u8>, Vec<u8>),
-    ErrNotEqual(String, String),
-    LeftErr(String, Vec<u8>),
-    RightErr(Vec<u8>, String),
-    NoComp,
-}
-
-impl ComparisonError {
-    fn strings(&self) -> (String, String, String) {
-        let wrap_err = |e: &str| -> String {
-            let mut s = "Err:\t".to_owned();
-            s.push_str(e);
-            s
-        };
-
-        match self {
-            ComparisonError::OkNotEqual(left, right) => (
-                "OkNotEqual".to_owned(),
-                hex::encode(&left),
-                hex::encode(&right),
-            ),
-            ComparisonError::ErrNotEqual(left, right) => {
-                ("ErrNotEqual".to_owned(), wrap_err(left), wrap_err(right))
-            }
-            ComparisonError::LeftErr(left, right) => {
-                ("LeftErr".to_owned(), wrap_err(left), hex::encode(&right))
-            }
-            ComparisonError::RightErr(left, right) => {
-                ("RightErr".to_owned(), hex::encode(left), wrap_err(right))
-            }
-            _ => panic!(),
-        }
-    }
-}
-
-impl std::fmt::Display for ComparisonError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if *self == ComparisonError::NoComp {
-            write!(f, "\nComparisonError::NoComp")
-        } else {
-            let (variant, left, right) = self.strings();
-            writeln!(f, "ComparisonError {} {{", variant)?;
-            writeln!(f, "\tleft:  {}", left)?;
-            writeln!(f, "\tright: {}", right)?;
-            writeln!(f, "}}")
-        }
-    }
 }
 
 pub trait Target: Send + Sync {
@@ -74,7 +27,7 @@ pub trait Target: Send + Sync {
         &mut self,
         context: &mut ThreadContext,
         input: &[u8],
-    ) -> Vec<Result<Vec<u8>, String>>;
+    ) -> Vec<CommunicationResult<Vec<u8>>>;
 
     // Ought to be overriden in most cases
     fn generate(&self, mutator: &mut Mutator<Self::Rng>) -> Self::Intermediate {
@@ -92,7 +45,7 @@ pub trait Target: Send + Sync {
         &mut self,
         context: &mut ThreadContext,
         mutator: &mut Mutator<Self::Rng>,
-    ) -> Vec<Result<Vec<u8>, String>> {
+    ) -> Vec<CommunicationResult<Vec<u8>>> {
         let buf = self.generate_next(mutator);
         self.run_experimental(context, &buf)
     }
@@ -116,7 +69,7 @@ pub trait TargetWithControl: Target {
         &mut self,
         ctx: &mut ThreadContext,
         input: &<Self as Target>::Intermediate,
-    ) -> Vec<Result<(), ComparisonError>> {
+    ) -> Vec<ComparisonResult> {
         let mut buf = vec![];
         input.binary_serialize::<_, lain::byteorder::BigEndian>(&mut buf);
         let experimental = self.run_experimental(ctx, &buf);
@@ -126,6 +79,7 @@ pub trait TargetWithControl: Target {
             .into_iter()
             .map(|a| {
                 let c = control.clone();
+
                 match (a, c) {
                     (Ok(left), Ok(right)) => {
                         if left == right {
@@ -134,15 +88,16 @@ pub trait TargetWithControl: Target {
                             Err(ComparisonError::OkNotEqual(left, right))
                         }
                     }
-                    (Err(left), Ok(right)) => Err(ComparisonError::LeftErr(left, right)),
+                    (Err(CommunicationError::RemoteError(left)), Ok(right)) => Err(ComparisonError::LeftErr(left, right)),
                     (Ok(left), Err(right)) => Err(ComparisonError::RightErr(left, right)),
-                    (Err(left), Err(right)) => {
+                    (Err(CommunicationError::RemoteError(left)), Err(right)) => {
                         if left == right {
                             Ok(())
                         } else {
                             Err(ComparisonError::ErrNotEqual(left, right))
                         }
-                    }
+                    },
+                    _ => Err(ComparisonError::NoComp),
                 }
             })
             .collect()
