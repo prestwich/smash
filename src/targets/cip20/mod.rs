@@ -8,7 +8,7 @@ use blake2s::Blake2sGenOpts;
 
 use crate::{
     errors::CommunicationResult,
-    traits::{ProduceInvalid, Target, TargetWithControl, ThreadContext}
+    traits::{ProduceInvalid, Target, TargetWithControl, ThreadContext},
 };
 
 const SHA_3_256_SELECTOR: u8 = 0x00;

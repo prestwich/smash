@@ -2,7 +2,7 @@ use lain::traits::BinarySerialize;
 
 use crate::{
     errors::CommunicationResult,
-    traits::{Target, TargetWithControl, ThreadContext}
+    traits::{Target, TargetWithControl, ThreadContext},
 };
 
 pub struct IdentityPrecompile;

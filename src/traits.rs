@@ -88,7 +88,9 @@ pub trait TargetWithControl: Target {
                             Err(ComparisonError::OkNotEqual(left, right))
                         }
                     }
-                    (Err(CommunicationError::RemoteError(left)), Ok(right)) => Err(ComparisonError::LeftErr(left, right)),
+                    (Err(CommunicationError::RemoteError(left)), Ok(right)) => {
+                        Err(ComparisonError::LeftErr(left, right))
+                    }
                     (Ok(left), Err(right)) => Err(ComparisonError::RightErr(left, right)),
                     (Err(CommunicationError::RemoteError(left)), Err(right)) => {
                         if left == right {
@@ -96,7 +98,7 @@ pub trait TargetWithControl: Target {
                         } else {
                             Err(ComparisonError::ErrNotEqual(left, right))
                         }
-                    },
+                    }
                     _ => Err(ComparisonError::NoComp),
                 }
             })

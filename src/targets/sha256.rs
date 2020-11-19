@@ -3,8 +3,8 @@ use sha2::Digest;
 use lain::traits::BinarySerialize;
 
 use crate::{
-    errors::CommunicationResult,
     celo::Celo,
+    errors::CommunicationResult,
     geth::Geth,
     traits::{Target, TargetWithControl, ThreadContext},
 };
