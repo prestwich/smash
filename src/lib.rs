@@ -12,3 +12,6 @@ pub mod call;
 
 /// Error types
 pub mod errors;
+
+/// convenience cli
+pub mod cli;

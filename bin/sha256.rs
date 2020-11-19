@@ -1,7 +1,7 @@
 extern crate smash;
 
-use smash::{targets::Sha256Precompile, traits::Target};
+use smash::{cli, targets::Sha256Precompile};
 
 fn main() {
-    Sha256Precompile::new_fuzzer().run_against_control(2);
+    cli::target_with_control::<Sha256Precompile>()
 }

@@ -1,7 +1,7 @@
 extern crate smash;
 
-use smash::{targets::IdentityPrecompile, traits::Target};
+use smash::{cli, targets::IdentityPrecompile};
 
 fn main() {
-    IdentityPrecompile::new_fuzzer().run(4);
+    cli::target_with_control::<IdentityPrecompile>()
 }

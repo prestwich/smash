@@ -1,7 +1,7 @@
 extern crate smash;
 
-use smash::{targets::Cip20Precompile, traits::Target};
+use smash::{cli, targets::Cip20Precompile};
 
 fn main() {
-    Cip20Precompile::new_fuzzer().run_invalid(4);
+    cli::produce_invalid_with_control::<Cip20Precompile>()
 }
