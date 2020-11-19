@@ -30,7 +30,7 @@ His code is used with permission, pending FOSS licensing.
     output
     - This enables `Fuzzer.run_against_control()`
 
-See `src/targets/mod.rs` for an example of the Identity precompile
+See `src/targets/identity.rs` for an example of the Identity precompile
 
 ### To run a target in this repo:
 
