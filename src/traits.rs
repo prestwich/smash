@@ -7,6 +7,7 @@ use lain::{
 use crate::{
     celo::Celo,
     errors::{CommunicationError, CommunicationResult, ComparisonError, ComparisonResult},
+    fuzzer::Fuzzer,
     geth::Geth,
 };
 
@@ -48,6 +49,13 @@ pub trait Target: Send + Sync {
     ) -> Vec<CommunicationResult<Vec<u8>>> {
         let buf = self.generate_next(mutator);
         self.run_experimental(context, &buf)
+    }
+
+    fn new_fuzzer(verbose_errors: bool) -> Fuzzer<Self>
+    where
+        Self: Sized,
+    {
+        Fuzzer::<Self>::new(verbose_errors)
     }
 }
 

@@ -1,23 +1,34 @@
 use lain::{prelude::*, rand::rngs::StdRng};
-use std::marker::PhantomData;
+use std::{
+    marker::PhantomData,
+    sync::{self, atomic},
+};
 
 use crate::traits::{ProduceInvalid, Target, TargetWithControl};
 
 #[derive(Copy, Clone, Default, Debug)]
-pub struct Fuzzer<T>(PhantomData<T>);
+pub struct Fuzzer<T>{
+    verbose_errors: bool,
+    _danny: PhantomData<T>,
+}
 
 impl<T> Fuzzer<T>
 where
     T: Target,
 {
-    pub fn new() -> Self {
-        Self(PhantomData)
+    pub fn new(verbose_errors: bool) -> Self {
+        Self{
+            verbose_errors,
+            _danny: PhantomData
+        }
     }
 
     pub fn run(&self, threads: usize)
     where
         T: Target<Rng = StdRng>,
     {
+        let verbose_errors = self.verbose_errors;
+
         _run(threads, move |mutator, ctx| {
             let mut target = T::new();
             let input = target.generate_next(mutator);
@@ -26,14 +37,17 @@ where
 
             let mut is_err = false;
             errs.for_each(|e| {
-                let message = format!(
-                    "Error on input:\n\t{}\n{}",
-                    hex::encode(&input),
-                    e.as_ref().unwrap_err()
-                );
-                println!("{}", &message);
+                if verbose_errors {
+                    let message = format!(
+                        "Error on input:\n\t{}\n{}",
+                        hex::encode(&input),
+                        e.as_ref().unwrap_err()
+                    );
+                    println!("{}", &message);
+                }
                 is_err = true;
             });
+
             if is_err {
                 return Err(());
             }
@@ -66,6 +80,8 @@ where
     where
         T: ProduceInvalid<Rng = StdRng>,
     {
+        let verbose_errors = self.verbose_errors;
+
         _run(threads, move |mutator, ctx| {
             let mut target = T::new();
 
@@ -81,12 +97,14 @@ where
 
                 let mut is_err = false;
                 errs.for_each(|e| {
-                    let message = format!(
-                        "Error on input:\n\t{}\n{}",
-                        hex::encode(&input),
-                        e.as_ref().unwrap_err()
-                    );
-                    println!("{}", &message);
+                    if verbose_errors {
+                        let message = format!(
+                            "Error on input:\n\t{}\n{}",
+                            hex::encode(&input),
+                            e.as_ref().unwrap_err()
+                        );
+                        println!("{}", &message);
+                    }
                     is_err = true;
                 });
                 if is_err {
@@ -107,6 +125,8 @@ where
     where
         T: TargetWithControl<Rng = StdRng>,
     {
+        let verbose_errors = self.verbose_errors;
+
         _run(threads, move |mutator, ctx| {
             let mut target = T::new();
 
@@ -117,14 +137,16 @@ where
 
             let mut is_err = false;
             errs.for_each(|e| {
-                let mut buf = vec![];
-                input.binary_serialize::<_, lain::byteorder::BigEndian>(&mut buf);
-                let message = format!(
-                    "Error on input:\n\t{}\n{}",
-                    hex::encode(&buf),
-                    e.as_ref().unwrap_err()
-                );
-                println!("{}", &message);
+                if verbose_errors {
+                    let mut buf = vec![];
+                    input.binary_serialize::<_, lain::byteorder::BigEndian>(&mut buf);
+                    let message = format!(
+                        "Error on input:\n\t{}\n{}",
+                        hex::encode(&buf),
+                        e.as_ref().unwrap_err()
+                    );
+                    println!("{}", &message);
+                }
                 is_err = true;
             });
 
@@ -142,26 +164,41 @@ where
     C: Default + 'static,
     F: Fn(&mut Mutator<StdRng>, &mut C) -> Result<(), ()> + Send + Sync + Copy + 'static,
 {
-    let mut driver = lain::driver::FuzzerDriver::<()>::new(threads);
+    let stop_progress = atomic::AtomicBool::new(false);
+    let stop_progress = sync::RwLock::from(stop_progress);
+    let stop_progress = sync::Arc::from(stop_progress);
+
+    let mut driver = lain::driver::FuzzerDriver::<atomic::AtomicBool>::new(threads);
+    driver.set_global_context(stop_progress.clone());
     driver.set_seed(42);
+    let driver = sync::Arc::from(driver);
     // driver.set_to_reproduce_mode(31150, 31200);
-
-    let driver = std::sync::Arc::from(driver);
-
-    let stop_progress = std::sync::atomic::AtomicBool::new(false);
-    let stop_progress = std::sync::Arc::from(stop_progress);
 
     // set up ctrl+c handling
     let ctrlc_driver = driver.clone();
     let ctrlc_driver_stop_progress = stop_progress.clone();
     ctrlc::set_handler(move || {
-        ctrlc_driver_stop_progress.store(true, std::sync::atomic::Ordering::Relaxed);
+        ctrlc_driver_stop_progress
+            .write()
+            .unwrap()
+            .store(true, atomic::Ordering::Relaxed);
         ctrlc_driver.signal_exit();
     })
     .expect("couldn't set CTRL-C handler");
 
-    lain::driver::start_fuzzer(driver.clone(), move |mutator, ctx, _| {
-        callback(mutator, ctx)
+    lain::driver::start_fuzzer(driver.clone(), move |mutator, ctx, stop_progress| {
+        let res = callback(mutator, ctx);
+        if res.is_err()
+            && stop_progress
+                .unwrap()
+                .read()
+                .unwrap()
+                .load(atomic::Ordering::Relaxed)
+        {
+            Ok(()) // silence errors during shutdown
+        } else {
+            res
+        }
     });
 
     let progress_driver = driver.clone();
@@ -185,7 +222,10 @@ where
             std::thread::sleep(std::time::Duration::from_millis(5000));
             // let _ = term.clear_line();
 
-            let stop = stop_progress.load(std::sync::atomic::Ordering::Relaxed);
+            let stop = stop_progress
+                .read()
+                .unwrap()
+                .load(atomic::Ordering::Relaxed);
             if stop {
                 break;
             }
