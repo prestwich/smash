@@ -1,6 +1,6 @@
 use lain::{prelude::*, rand::rngs::StdRng};
 
-use crate::traits::{ProduceInvalid, Target, TargetWithControl, ThreadContext};
+use crate::traits::{ProduceInvalid, Target, TargetWithControl};
 
 #[derive(Copy, Clone, Default, Debug)]
 pub struct Fuzzer;
@@ -14,7 +14,7 @@ impl Fuzzer {
     where
         T: Target<Rng = StdRng>,
     {
-        _run(threads, move |mutator, ctx: &mut ThreadContext| {
+        _run(threads, move |mutator, ctx| {
             let mut target = T::new();
             let input = target.generate_next(mutator);
             let res = target.run_experimental(ctx, &input);
@@ -45,30 +45,11 @@ impl Fuzzer {
     {
         _run(threads, move |mutator, ctx| {
             let mut target = T::new();
+            // okay as long as it doesn't panic
             let input = target.generate_next_invalid(mutator);
             target.run_experimental(ctx, &input);
 
             Ok(())
-
-            // let not_errs = res.into_iter().filter(|r| !r.is_err());
-
-            // let mut is_not_err = false;
-            // not_errs.for_each(|r| {
-            //     let message = format!(
-            //         "Expected error on input:\n\t{}\nGot:\n\t{}",
-            //         hex::encode(&input),
-            //         hex::encode(&r.unwrap()),
-            //     );
-
-            //     println!("{}", &message);
-            //     is_not_err = true;
-            // });
-
-            // if is_not_err {
-            //     Err(())
-            // } else {
-            //     Ok(())
-            // }
         });
     }
 
@@ -81,6 +62,7 @@ impl Fuzzer {
 
             if mutator.gen_chance(0.1) {
                 let input = target.generate_next_invalid(mutator);
+                // okay as long as it doesn't panic
                 target.run_experimental(ctx, &input);
                 Ok(())
             } else {
@@ -148,13 +130,16 @@ where
 {
     let mut driver = lain::driver::FuzzerDriver::<()>::new(threads);
     driver.set_seed(42);
+    // driver.set_to_reproduce_mode(31150, 31200);
+
     let driver = std::sync::Arc::from(driver);
 
-    let ctrlc_driver = driver.clone();
     let stop_progress = std::sync::atomic::AtomicBool::new(false);
     let stop_progress = std::sync::Arc::from(stop_progress);
-    let ctrlc_driver_stop_progress = stop_progress.clone();
 
+    // set up ctrl+c handling
+    let ctrlc_driver = driver.clone();
+    let ctrlc_driver_stop_progress = stop_progress.clone();
     ctrlc::set_handler(move || {
         ctrlc_driver_stop_progress.store(true, std::sync::atomic::Ordering::Relaxed);
         ctrlc_driver.signal_exit();

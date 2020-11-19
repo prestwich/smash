@@ -6,7 +6,6 @@ pub mod blake2s;
 
 use blake2s::Blake2sGenOpts;
 
-
 use crate::traits::{Target, TargetWithControl, ThreadContext, ProduceInvalid};
 
 const SHA_3_256_SELECTOR: u8 = 0x00;
