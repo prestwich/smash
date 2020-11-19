@@ -1,16 +1,20 @@
 use lain::{prelude::*, rand::rngs::StdRng};
+use std::marker::PhantomData;
 
 use crate::traits::{ProduceInvalid, Target, TargetWithControl};
 
 #[derive(Copy, Clone, Default, Debug)]
-pub struct Fuzzer;
+pub struct Fuzzer<T>(PhantomData<T>);
 
-impl Fuzzer {
+impl<T> Fuzzer<T>
+where
+    T: Target,
+{
     pub fn new() -> Self {
-        Self
+        Self(PhantomData)
     }
 
-    pub fn run<T>(&self, threads: usize)
+    pub fn run(&self, threads: usize)
     where
         T: Target<Rng = StdRng>,
     {
@@ -37,9 +41,14 @@ impl Fuzzer {
             Ok(())
         });
     }
+}
 
+impl<T> Fuzzer<T>
+where
+    T: ProduceInvalid,
+{
     // produce invalid inputs to try to get panics
-    pub fn run_invalid<T>(&self, threads: usize)
+    pub fn run_invalid(&self, threads: usize)
     where
         T: ProduceInvalid<Rng = StdRng>,
     {
@@ -53,7 +62,7 @@ impl Fuzzer {
         });
     }
 
-    pub fn run_mixed<T>(&self, threads: usize)
+    pub fn run_mixed(&self, threads: usize)
     where
         T: ProduceInvalid<Rng = StdRng>,
     {
@@ -88,8 +97,13 @@ impl Fuzzer {
             }
         })
     }
+}
 
-    pub fn run_against_control<T>(&self, threads: usize)
+impl<T> Fuzzer<T>
+where
+    T: TargetWithControl,
+{
+    pub fn run_against_control(&self, threads: usize)
     where
         T: TargetWithControl<Rng = StdRng>,
     {

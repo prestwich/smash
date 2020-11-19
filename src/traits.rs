@@ -119,10 +119,7 @@ pub trait TargetWithControl: Target {
     ) -> Vec<Result<(), ComparisonError>> {
         let mut buf = vec![];
         input.binary_serialize::<_, lain::byteorder::BigEndian>(&mut buf);
-        let experimental = self.run_experimental(
-            ctx,
-            &buf,
-        );
+        let experimental = self.run_experimental(ctx, &buf);
         let control = self.run_control(input);
 
         experimental

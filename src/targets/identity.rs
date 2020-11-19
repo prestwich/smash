@@ -1,5 +1,5 @@
-use lain::traits::BinarySerialize;
 use crate::traits::{Target, TargetWithControl, ThreadContext};
+use lain::traits::BinarySerialize;
 
 pub struct IdentityPrecompile;
 

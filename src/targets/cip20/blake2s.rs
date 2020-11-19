@@ -21,21 +21,21 @@ pub struct Blake2sArgs {
 impl Blake2sArgs {
     pub fn run(&self) -> Vec<u8> {
         blake2s_simd::Params::new()
-                .hash_length(self.hash_length as usize)
-                .fanout(self.fanout)
-                .max_depth(self.depth)
-                .max_leaf_length(self.leaf_length)
-                .node_offset(self.node_offset)
-                .node_depth(self.node_depth)
-                .inner_hash_length(self.inner_length as usize)
-                .salt(self.salt.as_ref())
-                .personal(self.personalization.as_ref())
-                .key(self.key.as_ref())
-                .to_state()
-                .update(self.preimage.as_ref())
-                .finalize()
-                .as_ref()
-                .to_vec()
+            .hash_length(self.hash_length as usize)
+            .fanout(self.fanout)
+            .max_depth(self.depth)
+            .max_leaf_length(self.leaf_length)
+            .node_offset(self.node_offset)
+            .node_depth(self.node_depth)
+            .inner_hash_length(self.inner_length as usize)
+            .salt(self.salt.as_ref())
+            .personal(self.personalization.as_ref())
+            .key(self.key.as_ref())
+            .to_state()
+            .update(self.preimage.as_ref())
+            .finalize()
+            .as_ref()
+            .to_vec()
     }
 }
 
@@ -92,11 +92,13 @@ impl BinarySerialize for Blake2sArgs {
     }
 }
 
-
 impl NewFuzzed for Blake2sGenOpts {
     type RangeType = ();
 
-    fn new_fuzzed<R: Rng>(mutator: &mut Mutator<R>, constraints: Option<&Constraints<Self::RangeType>>) -> Self {
+    fn new_fuzzed<R: Rng>(
+        mutator: &mut Mutator<R>,
+        constraints: Option<&Constraints<Self::RangeType>>,
+    ) -> Self {
         if constraints.is_some() && mutator.gen_chance(0.05) {
             return Blake2sGenOpts::Invalid(mutator.gen());
         }

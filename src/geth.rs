@@ -27,7 +27,6 @@ impl Geth {
     }
 }
 
-
 fn write_precompile_call<W>(w: &mut W, address: u8, buf: &[u8]) -> IoResult<()>
 where
     W: Write,

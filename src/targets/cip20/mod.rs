@@ -6,13 +6,14 @@ pub mod blake2s;
 
 use blake2s::Blake2sGenOpts;
 
-use crate::traits::{Target, TargetWithControl, ThreadContext, ProduceInvalid};
+use crate::traits::{ProduceInvalid, Target, TargetWithControl, ThreadContext};
 
 const SHA_3_256_SELECTOR: u8 = 0x00;
 const SHA_3_512_SELECTOR: u8 = 0x01;
 const KECCAK_512_SELECTOR: u8 = 0x02;
 
 // Update whenever a new variant is added
+// bit of cruft here. wish there were a better way to do this
 const VARIANT_COUNT: u8 = 4;
 
 #[derive(Debug)]
@@ -41,22 +42,24 @@ impl BinarySerialize for CIP20Modes {
                 buf.write_all(preimage).unwrap();
                 preimage.len() + 1
             }
-            CIP20Modes::Blake2s(opts) => {
-                opts.binary_serialize::<W, E>(buf)
-            }
+            CIP20Modes::Blake2s(opts) => opts.binary_serialize::<W, E>(buf),
         }
     }
 }
 
 impl NewFuzzed for CIP20Modes {
     type RangeType = u8;
-    fn new_fuzzed<R: Rng>(mutator: &mut Mutator<R>, constraints: Option<&Constraints<Self::RangeType>>) -> Self {
-
+    fn new_fuzzed<R: Rng>(
+        mutator: &mut Mutator<R>,
+        constraints: Option<&Constraints<Self::RangeType>>,
+    ) -> Self {
         let (min, max, weight) = {
             if let Some(range) = constraints {
-                (range.min.unwrap_or(0),
-                range.max.unwrap_or(VARIANT_COUNT),
-                range.weighted)
+                (
+                    range.min.unwrap_or(0),
+                    range.max.unwrap_or(VARIANT_COUNT),
+                    range.weighted,
+                )
             } else {
                 (0, VARIANT_COUNT, Default::default())
             }
@@ -108,10 +111,8 @@ impl TargetWithControl for Cip20Precompile {
             CIP20Modes::Sha3_256(buf) => Ok(sha3::Sha3_256::digest(buf).to_vec()),
             CIP20Modes::Sha3_512(buf) => Ok(sha3::Sha3_512::digest(buf).to_vec()),
             CIP20Modes::Keccak512(buf) => Ok(sha3::Keccak512::digest(buf).to_vec()),
-            CIP20Modes::Blake2s(
-                Blake2sGenOpts::Valid(opts)
-            ) => Ok(opts.run()),
-            _ => Err("Error: unknown".to_owned())
+            CIP20Modes::Blake2s(Blake2sGenOpts::Valid(opts)) => Ok(opts.run()),
+            _ => Err("Error: unknown".to_owned()),
         }
     }
 }
