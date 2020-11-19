@@ -3,21 +3,16 @@ use sha2::Digest;
 use lain::traits::BinarySerialize;
 
 use crate::{
-    celo::Celo,
     errors::CommunicationResult,
-    geth::Geth,
     traits::{Target, TargetWithControl, ThreadContext},
 };
 
-pub struct Sha256Precompile(Celo, Geth);
+#[derive(Debug, Default)]
+pub struct Sha256Precompile;
 
 impl Target for Sha256Precompile {
     type Intermediate = Vec<u8>;
     type Rng = lain::rand::rngs::StdRng;
-
-    fn new() -> Self {
-        Self(Celo::default(), Geth::default())
-    }
 
     fn name() -> &'static str {
         "sha256"

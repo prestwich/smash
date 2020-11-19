@@ -17,12 +17,16 @@ pub struct ThreadContext {
     pub(crate) geth: Geth,
 }
 
-pub trait Target: Send + Sync {
+pub trait Target: Send + Sync + Default {
     type Intermediate: BinarySerialize + NewFuzzed;
     type Rng: Rng;
 
-    fn new() -> Self;
     fn name() -> &'static str;
+
+    fn new() -> Self {
+        Default::default()
+    }
+
 
     fn run_experimental(
         &mut self,

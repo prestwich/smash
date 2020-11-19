@@ -79,6 +79,7 @@ impl NewFuzzed for CIP20Modes {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct Cip20Precompile;
 
 impl Target for Cip20Precompile {

@@ -5,15 +5,12 @@ use crate::{
     traits::{Target, TargetWithControl, ThreadContext},
 };
 
+#[derive(Debug, Default)]
 pub struct IdentityPrecompile;
 
 impl Target for IdentityPrecompile {
     type Intermediate = Vec<u8>;
     type Rng = lain::rand::rngs::StdRng;
-
-    fn new() -> IdentityPrecompile {
-        Self
-    }
 
     fn name() -> &'static str {
         "identity"
