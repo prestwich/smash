@@ -16,11 +16,16 @@ impl<T> Fuzzer<T>
 where
     T: Target,
 {
-    pub fn new(verbose_errors: bool) -> Self {
-        Self{
-            verbose_errors,
-            _danny: PhantomData
-        }
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn verbose_errors(&self) -> bool {
+        self.verbose_errors
+    }
+
+    pub fn set_verbose_errors(&mut self, v: bool) {
+        self.verbose_errors = v
     }
 
     pub fn run(&self, threads: usize)

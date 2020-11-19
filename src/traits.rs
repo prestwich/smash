@@ -62,11 +62,11 @@ pub trait Target: Send + Sync + Default {
         self.run_experimental(context, &buf)
     }
 
-    fn new_fuzzer(verbose_errors: bool) -> Fuzzer<Self>
+    fn new_fuzzer() -> Fuzzer<Self>
     where
         Self: Sized,
     {
-        Fuzzer::<Self>::new(verbose_errors)
+        Fuzzer::<Self>::new()
     }
 }
 
