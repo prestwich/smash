@@ -2,6 +2,8 @@ use clap::Clap;
 
 use crate::{traits::*, fuzzer::Fuzzer};
 
+// TODO: express this with less boileplate
+
 #[derive(Clap)]
 #[clap(version = "1.0", author = "James Prestwich <prestwich@clabs.co>")]
 pub struct Opts {

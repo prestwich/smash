@@ -97,11 +97,8 @@ impl NewFuzzed for Blake2sGenOpts {
 
     fn new_fuzzed<R: Rng>(
         mutator: &mut Mutator<R>,
-        constraints: Option<&Constraints<Self::RangeType>>,
+        _constraints: Option<&Constraints<Self::RangeType>>,
     ) -> Self {
-        if constraints.is_some() && mutator.gen_chance(0.05) {
-            return Blake2sGenOpts::Invalid(mutator.gen());
-        }
         Blake2sGenOpts::Valid(mutator.gen())
     }
 }
@@ -110,7 +107,11 @@ impl BinarySerialize for Blake2sGenOpts {
     fn binary_serialize<W: Write, E: ByteOrder>(&self, buf: &mut W) -> usize {
         match self {
             Blake2sGenOpts::Valid(args) => args.binary_serialize::<W, E>(buf),
-            Blake2sGenOpts::Invalid(v) => v.binary_serialize::<W, E>(buf),
+            Blake2sGenOpts::Invalid(v) => {
+                let mut written = buf.write(&[0x11]).unwrap();
+                written += v.binary_serialize::<W, E>(buf);
+                written
+            }
         }
     }
 }

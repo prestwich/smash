@@ -17,14 +17,18 @@ const KECCAK_512_SELECTOR: u8 = 0x02;
 
 // Update whenever a new variant is added
 // bit of cruft here. wish there were a better way to do this
-const VARIANT_COUNT: u8 = 4;
+const VALID_VARIANT_COUNT: u8 = 4;
+const INVALID_VARIANT_COUNT: u8 = 2;
 
 #[derive(Debug)]
 pub enum CIP20Modes {
+    Invalid(Vec<u8>),
+
     Sha3_256(Vec<u8>),
     Sha3_512(Vec<u8>),
     Keccak512(Vec<u8>),
     Blake2s(Blake2sGenOpts),
+    // Insert new valid variants here
 }
 
 impl BinarySerialize for CIP20Modes {
@@ -46,6 +50,7 @@ impl BinarySerialize for CIP20Modes {
                 preimage.len() + 1
             }
             CIP20Modes::Blake2s(opts) => opts.binary_serialize::<W, E>(buf),
+            CIP20Modes::Invalid(bytes) => bytes.binary_serialize::<W, E>(buf),
         }
     }
 }
@@ -60,11 +65,11 @@ impl NewFuzzed for CIP20Modes {
             if let Some(range) = constraints {
                 (
                     range.min.unwrap_or(0),
-                    range.max.unwrap_or(VARIANT_COUNT),
+                    range.max.unwrap_or(VALID_VARIANT_COUNT),
                     range.weighted,
                 )
             } else {
-                (0, VARIANT_COUNT, Default::default())
+                (0, VALID_VARIANT_COUNT, Default::default())
             }
         };
 
@@ -105,7 +110,16 @@ impl Target for Cip20Precompile {
 
 impl ProduceInvalid for Cip20Precompile {
     fn generate_invalid(&self, mutator: &mut Mutator<Self::Rng>) -> Self::Intermediate {
-        CIP20Modes::Blake2s(Blake2sGenOpts::Invalid(mutator.gen()))
+        let choice: u8 = mutator.gen_range(
+            0,
+            INVALID_VARIANT_COUNT,
+        );
+
+        match choice {
+            0 => CIP20Modes::Invalid(mutator.gen()),
+            1 => CIP20Modes::Blake2s(Blake2sGenOpts::Invalid(mutator.gen())),
+            _ => panic!("unreachable"),
+        }
     }
 }
 
