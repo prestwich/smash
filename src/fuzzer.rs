@@ -6,37 +6,66 @@ use std::{
 
 use crate::traits::{ProduceInvalid, Target, TargetWithControl};
 
-#[derive(Copy, Clone, Default, Debug)]
+/// A simple Fuzzer configuration object. It is parameterized with a `Target`
+/// to simplify set up.
+#[derive(Copy, Clone, Debug)]
 pub struct Fuzzer<T>{
     verbose_errors: bool,
+    threads: usize,
     _danny: PhantomData<T>,
+}
+
+impl<T> Default for Fuzzer<T> {
+    fn default() -> Self {
+        Self {
+            verbose_errors: false,
+            threads: 4,
+            _danny: PhantomData
+        }
+    }
 }
 
 impl<T> Fuzzer<T>
 where
     T: Target,
 {
+    /// Instantiate a new fuzzer. Alias for `Default::default()`
     pub fn new() -> Self {
         Default::default()
     }
 
+    /// Getter for fuzzer `verbose_errors` setting.
     pub fn verbose_errors(&self) -> bool {
         self.verbose_errors
     }
 
+    /// Set to true for verbose, false for silent. Verbose errors are printed to
+    /// terminal.
     pub fn set_verbose_errors(&mut self, v: bool) {
         self.verbose_errors = v
     }
 
-    pub fn run(&self, threads: usize)
+    /// Getter for fuzzer `threads` setting.
+    pub fn threads(&self) -> usize {
+        self.threads
+    }
+
+    /// Set the number of threads
+    pub fn set_threads(&mut self, t: usize) {
+        self.threads = t
+    }
+
+
+    /// Run valid inputs.
+    pub fn run(&self)
     where
         T: Target<Rng = StdRng>,
     {
         let verbose_errors = self.verbose_errors;
 
-        _run(threads, move |mutator, ctx| {
+        _run(self.threads, move |mutator, ctx| {
             let mut target = T::new();
-            let input = target.generate_next(mutator);
+            let input = target.generate_serialized(mutator);
             let res = target.run_experimental(ctx, &input);
             let errs = res.iter().filter(|r| r.is_err());
 
@@ -66,37 +95,38 @@ impl<T> Fuzzer<T>
 where
     T: ProduceInvalid,
 {
-    // produce invalid inputs to try to get panics
-    pub fn run_invalid(&self, threads: usize)
+    /// Run invalid inputs.
+    pub fn run_invalid(&self)
     where
         T: ProduceInvalid<Rng = StdRng>,
     {
-        _run(threads, move |mutator, ctx| {
+        _run(self.threads, move |mutator, ctx| {
             let mut target = T::new();
             // okay as long as it doesn't panic
-            let input = target.generate_next_invalid(mutator);
+            let input = target.generate_serialized_invalid(mutator);
             target.run_experimental(ctx, &input);
 
             Ok(())
         });
     }
 
-    pub fn run_mixed(&self, threads: usize)
+    /// Run a mix of valid and invalid inputs.
+    pub fn run_mixed(&self)
     where
         T: ProduceInvalid<Rng = StdRng>,
     {
         let verbose_errors = self.verbose_errors;
 
-        _run(threads, move |mutator, ctx| {
+        _run(self.threads, move |mutator, ctx| {
             let mut target = T::new();
 
             if mutator.gen_chance(0.1) {
-                let input = target.generate_next_invalid(mutator);
+                let input = target.generate_serialized_invalid(mutator);
                 // okay as long as it doesn't panic
                 target.run_experimental(ctx, &input);
                 Ok(())
             } else {
-                let input = target.generate_next(mutator);
+                let input = target.generate_serialized(mutator);
                 let res = target.run_experimental(ctx, &input);
                 let errs = res.iter().filter(|r| r.is_err());
 
@@ -126,13 +156,14 @@ impl<T> Fuzzer<T>
 where
     T: TargetWithControl,
 {
-    pub fn run_against_control(&self, threads: usize)
+    /// Run valid inputs and compare to the control result.
+    pub fn run_against_control(&self)
     where
         T: TargetWithControl<Rng = StdRng>,
     {
         let verbose_errors = self.verbose_errors;
 
-        _run(threads, move |mutator, ctx| {
+        _run(self.threads, move |mutator, ctx| {
             let mut target = T::new();
 
             let input = target.generate(mutator);

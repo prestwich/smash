@@ -16,7 +16,7 @@ pub struct Opts {
 
     /// Operation mode. 0 to run valid inputs. 1 to run valid inputs against a
     /// control. 2 to run mixed valid and invalid inputs. 3 to run invalid
-    /// inputs only
+    /// inputs only.
     #[clap(short, long, default_value="0")]
     pub mode: usize,
 }
@@ -39,6 +39,9 @@ where
 
     let mut fuzzer = T::new_fuzzer();
     fuzzer.set_verbose_errors(opts.verbose_errors);
+    fuzzer.set_threads(opts.threads);
+
+    println!("Running {} on mode {} with {} threads", T::name(), mode_name(opts.mode), opts.threads);
 
     (opts, fuzzer)
 }
@@ -49,8 +52,10 @@ where
 {
     let (opts, fuzzer) = setup::<T>();
 
-    println!("Running {} on {} threads", T::name(), opts.threads);
-    fuzzer.run(opts.threads);
+    match opts.mode {
+        0 => fuzzer.run(),
+        _ => println!("Unsupported mode: {}. Supported for {} is 0", mode_name(opts.mode), T::name()),
+    }
 }
 
 pub fn target_with_control<T>()
@@ -59,11 +64,9 @@ where
 {
     let (opts, fuzzer) = setup::<T>();
 
-    println!("Running {} on mode {} with {} threads", T::name(), mode_name(opts.mode), opts.threads);
-
     match opts.mode {
-        0 => fuzzer.run(opts.threads),
-        1 => fuzzer.run_against_control(opts.threads),
+        0 => fuzzer.run(),
+        1 => fuzzer.run_against_control(),
         _ => println!("Unsupported mode: {}. Supported for {} are 0 & 1", mode_name(opts.mode), T::name()),
     }
 }
@@ -74,12 +77,11 @@ where
 {
     let (opts, fuzzer) = setup::<T>();
 
-    println!("Running {} on mode {} with {} threads", T::name(), mode_name(opts.mode), opts.threads);
-
     match opts.mode {
-        0 => fuzzer.run(opts.threads),
-        2 => fuzzer.run_mixed(opts.threads),
-        3 => fuzzer.run_invalid(opts.threads),
+        0 => fuzzer.run(),
+        // 1 => fuzzer.run_against_control(),
+        2 => fuzzer.run_mixed(),
+        3 => fuzzer.run_invalid(),
         _ => println!("Unsupported mode: {}. Supported for {} are 0, 2, & 3", mode_name(opts.mode), T::name()),
     }
 }
@@ -93,13 +95,11 @@ where
     let mut fuzzer = T::new_fuzzer();
     fuzzer.set_verbose_errors(opts.verbose_errors);
 
-    println!("Running {} on mode {} with {} threads", T::name(), mode_name(opts.mode), opts.threads);
-
     match opts.mode {
-        0 => fuzzer.run(opts.threads),
-        1 => fuzzer.run_against_control(opts.threads),
-        2 => fuzzer.run_mixed(opts.threads),
-        3 => fuzzer.run_invalid(opts.threads),
+        0 => fuzzer.run(),
+        1 => fuzzer.run_against_control(),
+        2 => fuzzer.run_mixed(),
+        3 => fuzzer.run_invalid(),
         _ => println!("Unsupported mode: {}. Supported for {} are 0, 1, 2, & 3", mode_name(opts.mode), T::name()),
     }
 }
