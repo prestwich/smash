@@ -9,17 +9,25 @@ use crate::traits::{ProduceInvalid, Target, TargetWithControl};
 /// A simple Fuzzer configuration object. It is parameterized with a `Target`
 /// to simplify set up.
 #[derive(Copy, Clone, Debug)]
-pub struct Fuzzer<T>{
+pub struct Fuzzer<T>
+where
+    T: Target,
+{
     verbose_errors: bool,
     threads: usize,
+    config: Option<T::Config>,
     _danny: PhantomData<T>,
 }
 
-impl<T> Default for Fuzzer<T> {
+impl<T> Default for Fuzzer<T>
+where
+    T: Target,
+{
     fn default() -> Self {
         Self {
             verbose_errors: false,
             threads: 4,
+            config: None,
             _danny: PhantomData
         }
     }
@@ -41,8 +49,9 @@ where
 
     /// Set to true for verbose, false for silent. Verbose errors are printed to
     /// terminal.
-    pub fn set_verbose_errors(&mut self, v: bool) {
-        self.verbose_errors = v
+    pub fn set_verbose_errors(mut self, v: bool) -> Self {
+        self.verbose_errors = v;
+        self
     }
 
     /// Getter for fuzzer `threads` setting.
@@ -51,10 +60,21 @@ where
     }
 
     /// Set the number of threads
-    pub fn set_threads(&mut self, t: usize) {
-        self.threads = t
+    pub fn set_threads(mut self, t: usize) -> Self {
+        self.threads = t;
+        self
     }
 
+    /// Getter for fuzzer `config` setting.
+    pub fn config(&self) -> Option<T::Config> {
+        self.config
+    }
+
+    /// Set the number of config
+    pub fn set_config(mut self, config: Option<T::Config>) -> Self {
+        self.config = config;
+        self
+    }
 
     /// Run valid inputs.
     pub fn run(&self)
@@ -62,14 +82,18 @@ where
         T: Target<Rng = StdRng>,
     {
         let verbose_errors = self.verbose_errors;
+        let config = self.config;
 
         _run(self.threads, move |mutator, ctx| {
-            let mut target = T::new();
+            let mut target = T::new(config);
             let input = target.generate_serialized(mutator);
             let res = target.run_experimental(ctx, &input);
-            let errs = res.iter().filter(|r| r.is_err());
 
             let mut is_err = false;
+
+            // TODO: check that all Ok results contain equal values
+
+            let errs = res.iter().filter(|r| r.is_err());
             errs.for_each(|e| {
                 if verbose_errors {
                     let message = format!(
@@ -100,8 +124,10 @@ where
     where
         T: ProduceInvalid<Rng = StdRng>,
     {
+        let config = self.config;
+
         _run(self.threads, move |mutator, ctx| {
-            let mut target = T::new();
+            let mut target = T::new(config);
             // okay as long as it doesn't panic
             let input = target.generate_serialized_invalid(mutator);
             target.run_experimental(ctx, &input);
@@ -116,9 +142,10 @@ where
         T: ProduceInvalid<Rng = StdRng>,
     {
         let verbose_errors = self.verbose_errors;
+        let config = self.config;
 
         _run(self.threads, move |mutator, ctx| {
-            let mut target = T::new();
+            let mut target = T::new(config);
 
             if mutator.gen_chance(0.1) {
                 let input = target.generate_serialized_invalid(mutator);
@@ -162,9 +189,10 @@ where
         T: TargetWithControl<Rng = StdRng>,
     {
         let verbose_errors = self.verbose_errors;
+        let config = self.config;
 
         _run(self.threads, move |mutator, ctx| {
-            let mut target = T::new();
+            let mut target = T::new(config);
 
             let input = target.generate(mutator);
             let res = target.compare(ctx, &input);

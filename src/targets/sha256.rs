@@ -13,6 +13,7 @@ pub struct Sha256Precompile;
 impl Target for Sha256Precompile {
     type Intermediate = Vec<u8>;
     type Rng = lain::rand::rngs::StdRng;
+    type Config = ();
 
     fn name() -> &'static str {
         "sha256"

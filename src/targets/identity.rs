@@ -11,6 +11,7 @@ pub struct IdentityPrecompile;
 impl Target for IdentityPrecompile {
     type Intermediate = Vec<u8>;
     type Rng = lain::rand::rngs::StdRng;
+    type Config = ();
 
     fn name() -> &'static str {
         "identity"

@@ -30,11 +30,15 @@ pub trait Target: Send + Sync + Default {
     type Intermediate: BinarySerialize + NewFuzzed;
     type Rng: Rng;
 
+    // We require these bounds to allow each fuzzer thread to copy the config
+    // and hold it indefinitely
+    type Config: Default + Copy + Send + Sync + 'static;
+
     /// A short human-readable name for the targt
     fn name() -> &'static str;
 
     /// Instantiate a new target (alias for Default)
-    fn new() -> Self {
+    fn new(_config: Option<Self::Config>) -> Self {
         Default::default()
     }
 

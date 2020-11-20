@@ -90,10 +90,7 @@ pub struct Cip20Precompile;
 impl Target for Cip20Precompile {
     type Intermediate = CIP20Modes;
     type Rng = lain::rand::rngs::StdRng;
-
-    fn new() -> Cip20Precompile {
-        Self
-    }
+    type Config = ();
 
     fn name() -> &'static str {
         "cip20"
