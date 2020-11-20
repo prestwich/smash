@@ -1,6 +1,6 @@
 # Smash
 
-Simple precompile fuzzer with geth bindings.
+Simple precompile fuzzer with geth and celo bindings.
 
 This code is largely based on
 [Shamatar's algebraic fuzzer](https://github.com/shamatar/algebraic_fuzzer/).
@@ -15,11 +15,13 @@ His code is used with permission, pending FOSS licensing.
 - identity: working
 - sha2: working
 - cip20: working
+- eip2537: TODO
+- eip2539: TODO
 
 ### To add a target to this repo:
 
 - Make a new file in `src/targets/`
-- Implement generation for the precompile input
+- Implement randomized generation for the precompile input
 - Implement the `Target` trait on a new struct, with 1 or more experimental
     run
     - **Note**: This library expects `Target::generate()` to always produce
@@ -28,7 +30,7 @@ His code is used with permission, pending FOSS licensing.
     - This enables `Fuzzer::run_invalid()` and `Fuzzer::run_mixed()`
 - Optionally: implement `TargetWithControl` to compare output to a control
     output
-    - This enables `Fuzzer.run_against_control()`
+    - This enables `Fuzzer::run_against_control()`
 
 See `src/targets/identity.rs` for an example of the Identity precompile
 
