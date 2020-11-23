@@ -2,65 +2,29 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
 )
 
-const (
-	maxOutputLen = 4096
-	maxErrLen    = 256
-)
+type command struct {
+	body    []byte
+	address uint8
+}
 
-// //export CRunGethPrecompile
-// func CRunGethPrecompile(op C.char, i *C.char, iLen uint32, o *C.char, oLen *uint32, e *C.char, eLen *uint32) C.int {
+type response struct {
+	isErr bool
+	// gas   uint
+	body []byte
+}
 
-// 	iBuff := C.GoBytes(unsafe.Pointer(i), C.int(iLen))
-// 	oBuff := (*[maxOutputLen]byte)(unsafe.Pointer(o))
-// 	eBuff := (*[maxErrLen]byte)(unsafe.Pointer(e))
-
-// 	var res []byte
-// 	var err error
-
-// 	precompilesMap := vm.PrecompiledContractsIstanbul
-
-// 	if precompile, ok := precompilesMap[common.BytesToAddress([]byte{uint8(op)})]; ok {
-// 		res, err = precompile.Run(iBuff)
-
-// 		if err != nil {
-// 			errDescr := err.Error()
-// 			if len(errDescr) == 0 {
-// 				*eLen = uint32(0)
-// 				return 1
-// 			}
-// 			errDescrBytes := []byte(errDescr)
-// 			errDescrByteLen := len(errDescrBytes)
-// 			*eLen = uint32(errDescrByteLen)
-// 			copied := copy(eBuff[0:], errDescrBytes)
-// 			if copied != errDescrByteLen {
-// 				println("Invalid number of bytes copied for an error")
-// 			}
-// 			return 1
-// 		}
-// 		oBytes := res
-// 		resLen := len(oBytes)
-// 		*oLen = uint32(len(oBytes))
-// 		copied := copy(oBuff[0:], oBytes)
-// 		if copied != resLen {
-// 			println("Invalid number of bytes copied for result")
-// 		}
-// 		return 0
-// 	}
-// 	return 1
-// }
-
-func readStdin(size uint16) ([]byte, error) {
-	buf := make([]byte, size)
+func readSafe(reader io.Reader, desired uint) ([]byte, error) {
+	buf := make([]byte, desired)
 	var offset int
-
-	for offset < int(size) {
-		size, err := os.Stdin.Read(buf[offset:])
+	for offset < int(desired) {
+		size, err := reader.Read(buf[offset:])
 		if err != nil {
 			return nil, err
 		}
@@ -71,43 +35,75 @@ func readStdin(size uint16) ([]byte, error) {
 	return buf, nil
 }
 
-func inputFromStdin() (uint8, []byte, error) {
-	prefix, err := readStdin(3)
+func (c *command) ReadFrom(reader io.Reader) (int64, error) {
+	prefix, err := readSafe(reader, 3)
+
 	if err != nil {
-		return 0, nil, err
+		return 0, err
 	}
 
 	var bodySize uint16
 	bodySize |= uint16(prefix[0]) << 8
 	bodySize |= uint16(prefix[1])
 
-	address := prefix[2]
+	body, err := readSafe(reader, uint(bodySize))
 
-	body, err := readStdin(bodySize)
 	if err != nil {
-		return 0, nil, err
+		return 0, err
 	}
-	return address, body, nil
+
+	c.address = prefix[2]
+	c.body = body
+
+	return int64(bodySize) + 3, nil
 }
 
-func retToStdOut(buf []byte, isErr bool) error {
-	l := len(buf)
-	_, err := os.Stdout.Write([]byte{uint8(l >> 8), uint8(l & 0xff)})
+func (c *command) Run() *response {
+	precompilesMap := vm.PrecompiledContractsIstanbul
+
+	var res response
+
+	if precompile, ok := precompilesMap[common.BytesToAddress([]byte{uint8(c.address)})]; ok {
+
+		buf, err := precompile.Run(c.body)
+		if err != nil {
+			res.isErr = true
+			res.body = []byte(err.Error())
+			// res.gas = 0
+		} else {
+			res.isErr = false
+			res.body = buf
+			// res.gas = 0
+		}
+	} else {
+		res.isErr = true
+		res.body = []byte(fmt.Errorf("Precompile %d does not exist", c.address).Error())
+	}
+	return &res
+}
+
+func (r *response) WriteTo(writer io.Writer) (int64, error) {
+	l := len(r.body)
+	_, err := writer.Write([]byte{uint8(l >> 8), uint8(l & 0xff)})
+
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	var code uint8
-	if isErr {
+	if r.isErr {
 		code = 1
 	}
-	os.Stdout.Write([]byte{code})
-
-	_, err = os.Stdout.Write(buf)
+	_, err = writer.Write([]byte{code})
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+
+	_, err = writer.Write(r.body)
+	if err != nil {
+		return 0, err
+	}
+	return 3 + int64(len(r.body)), nil
 }
 
 func main() {
@@ -117,26 +113,14 @@ func main() {
 		return
 	}
 
-	precompilesMap := vm.PrecompiledContractsIstanbul
-
 	for {
-		address, body, err := inputFromStdin()
+		var c command
+		_, err := c.ReadFrom(os.Stdin)
 		if err != nil {
 			return
 		}
 
-		var outBody []byte
-		var isErr bool
-		if precompile, ok := precompilesMap[common.BytesToAddress([]byte{uint8(address)})]; ok {
-			buf, err := precompile.Run(body)
-			if err != nil {
-				outBody = []byte(err.Error())
-			} else {
-				outBody = buf
-			}
-		} else {
-			outBody = []byte("Precompile does not exist")
-		}
-		retToStdOut(outBody, isErr)
+		res := c.Run()
+		res.WriteTo(os.Stdout)
 	}
 }

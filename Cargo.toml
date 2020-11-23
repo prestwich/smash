@@ -37,3 +37,9 @@ name = "cip20"
 path = "bin/cip20.rs"
 test = false
 bench = false
+
+[[bin]]
+name = "smash"
+path = "bin/cli.rs"
+test = false
+bench = false
