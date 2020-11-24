@@ -19,7 +19,7 @@ impl Target for Sha256Precompile {
         "sha256"
     }
 
-    fn run_experimental(
+    fn run_raw(
         &mut self,
         ctx: &mut ThreadContext,
         input: &[u8],

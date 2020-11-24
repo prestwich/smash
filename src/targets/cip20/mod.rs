@@ -96,7 +96,7 @@ impl Target for Cip20Precompile {
         "cip20"
     }
 
-    fn run_experimental(
+    fn run_raw(
         &mut self,
         context: &mut ThreadContext,
         input: &[u8],

@@ -42,14 +42,22 @@ pub trait Target: Send + Sync + Default {
         Default::default()
     }
 
+    fn run_raw(&mut self, contxet: &mut ThreadContext, input: &[u8]) -> Vec<CommunicationResult<Vec<u8>>>;
+
     /// Make 1 or more experimental runs with the given input. Typically this
     /// will be calling the Geth and Celo instances (present in the context
     /// object).
+    ///
+    /// By default this serializes the input and runs `run_raw`
     fn run_experimental(
         &mut self,
         context: &mut ThreadContext,
-        input: &[u8],
-    ) -> Vec<CommunicationResult<Vec<u8>>>;
+        input: &Self::Intermediate,
+    ) -> Vec<CommunicationResult<Vec<u8>>> {
+        let mut buf = vec![];
+        input.binary_serialize::<_, lain::byteorder::BigEndian>(&mut buf);
+        self.run_raw(context, &buf)
+    }
 
     /// Generate a new test case. This may be overriden with custom generation
     /// logic.
@@ -72,7 +80,7 @@ pub trait Target: Send + Sync + Default {
         context: &mut ThreadContext,
         mutator: &mut Mutator<Self::Rng>,
     ) -> Vec<CommunicationResult<Vec<u8>>> {
-        let buf = self.generate_serialized(mutator);
+        let buf = self.generate(mutator);
         self.run_experimental(context, &buf)
     }
 
@@ -114,9 +122,7 @@ pub trait TargetWithControl: Target {
         ctx: &mut ThreadContext,
         input: &<Self as Target>::Intermediate,
     ) -> Vec<ComparisonResult> {
-        let mut buf = vec![];
-        input.binary_serialize::<_, lain::byteorder::BigEndian>(&mut buf);
-        let experimental = self.run_experimental(ctx, &buf);
+        let experimental = self.run_experimental(ctx, input);
         let control = self.run_control(input);
 
         experimental

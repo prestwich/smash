@@ -18,13 +18,8 @@ impl fmt::Debug for Caller {
 
 impl Drop for Caller {
     fn drop(&mut self) {
+        // causes panic on drop if the child panicked
         self.1.kill().expect("wasn't running");
-    }
-}
-
-impl Default for Caller {
-    fn default() -> Self {
-        Self::new_geth()
     }
 }
 
@@ -83,7 +78,7 @@ where
 
     if is_err[0] == 1 {
         Err(CommunicationError::RemoteError(
-            String::from_utf8(body).unwrap(),
+            String::from_utf8(body).expect("!string"),
         ))
     } else {
         Ok(body)

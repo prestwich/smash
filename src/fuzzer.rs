@@ -86,7 +86,7 @@ where
 
         _run(self.threads, move |mutator, ctx| {
             let mut target = T::new(config);
-            let input = target.generate_serialized(mutator);
+            let input = target.generate(mutator);
             let res = target.run_experimental(ctx, &input);
 
             let mut is_err = false;
@@ -96,9 +96,11 @@ where
             let errs = res.iter().filter(|r| r.is_err());
             errs.for_each(|e| {
                 if verbose_errors {
+                    let mut buf = vec![];
+                    input.binary_serialize::<_, lain::byteorder::BigEndian>(&mut buf);
                     let message = format!(
                         "Error on input:\n\t{}\n{}",
-                        hex::encode(&input),
+                        hex::encode(buf),
                         e.as_ref().unwrap_err()
                     );
                     println!("{}", &message);
@@ -129,7 +131,7 @@ where
         _run(self.threads, move |mutator, ctx| {
             let mut target = T::new(config);
             // okay as long as it doesn't panic
-            let input = target.generate_serialized_invalid(mutator);
+            let input = target.generate_invalid(mutator);
             target.run_experimental(ctx, &input);
 
             Ok(())
@@ -148,21 +150,23 @@ where
             let mut target = T::new(config);
 
             if mutator.gen_chance(0.1) {
-                let input = target.generate_serialized_invalid(mutator);
+                let input = target.generate_invalid(mutator);
                 // okay as long as it doesn't panic
                 target.run_experimental(ctx, &input);
                 Ok(())
             } else {
-                let input = target.generate_serialized(mutator);
+                let input = target.generate(mutator);
                 let res = target.run_experimental(ctx, &input);
                 let errs = res.iter().filter(|r| r.is_err());
 
                 let mut is_err = false;
                 errs.for_each(|e| {
+                    let mut buf = vec![];
+                    input.binary_serialize::<_, lain::byteorder::BigEndian>(&mut buf);
                     if verbose_errors {
                         let message = format!(
                             "Error on input:\n\t{}\n{}",
-                            hex::encode(&input),
+                            hex::encode(buf),
                             e.as_ref().unwrap_err()
                         );
                         println!("{}", &message);
