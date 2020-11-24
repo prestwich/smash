@@ -23,4 +23,4 @@ require (
 	golang.org/x/text v0.3.4 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/prestwich/celo-blockchain v0.0.0-cip20-alpha2
+replace github.com/ethereum/go-ethereum => github.com/prestwich/celo-blockchain v0.0.0-cip20-alpha3
