@@ -14,10 +14,11 @@ use crate::{
 const SHA_3_256_SELECTOR: u8 = 0x00;
 const SHA_3_512_SELECTOR: u8 = 0x01;
 const KECCAK_512_SELECTOR: u8 = 0x02;
+const SHA_2_512_SELECTOR: u8 = 0x03;
 
 // Update whenever a new variant is added
 // bit of cruft here. wish there were a better way to do this
-const VALID_VARIANT_COUNT: u8 = 4;
+const VALID_VARIANT_COUNT: u8 = 5;
 const INVALID_VARIANT_COUNT: u8 = 2;
 
 #[derive(Debug)]
@@ -27,6 +28,7 @@ pub enum CIP20Modes {
     Sha3_256(Vec<u8>),
     Sha3_512(Vec<u8>),
     Keccak512(Vec<u8>),
+    SHA2_512(Vec<u8>),
     Blake2s(Blake2sGenOpts),
     // Insert new valid variants here
 }
@@ -46,6 +48,11 @@ impl BinarySerialize for CIP20Modes {
             }
             CIP20Modes::Keccak512(preimage) => {
                 buf.write_all(&[KECCAK_512_SELECTOR]).unwrap();
+                buf.write_all(preimage).unwrap();
+                preimage.len() + 1
+            }
+            CIP20Modes::SHA2_512(preimage) => {
+                buf.write_all(&[SHA_2_512_SELECTOR]).unwrap();
                 buf.write_all(preimage).unwrap();
                 preimage.len() + 1
             }
@@ -78,7 +85,8 @@ impl NewFuzzed for CIP20Modes {
             0 => CIP20Modes::Sha3_256(mutator.gen()),
             1 => CIP20Modes::Sha3_512(mutator.gen()),
             2 => CIP20Modes::Keccak512(mutator.gen()),
-            3 => CIP20Modes::Blake2s(Blake2sGenOpts::Valid(mutator.gen())),
+            3 => CIP20Modes::SHA2_512(mutator.gen()),
+            4 => CIP20Modes::Blake2s(Blake2sGenOpts::Valid(mutator.gen())),
             _ => panic!("unreachable"),
         }
     }
@@ -126,6 +134,7 @@ impl TargetWithControl for Cip20Precompile {
             CIP20Modes::Sha3_256(buf) => Ok(sha3::Sha3_256::digest(buf).to_vec()),
             CIP20Modes::Sha3_512(buf) => Ok(sha3::Sha3_512::digest(buf).to_vec()),
             CIP20Modes::Keccak512(buf) => Ok(sha3::Keccak512::digest(buf).to_vec()),
+            CIP20Modes::SHA2_512(buf) => Ok(sha2::Sha512::digest(buf).to_vec()),
             CIP20Modes::Blake2s(Blake2sGenOpts::Valid(opts)) => Ok(opts.run()),
             _ => panic!("unreachable"),
         }
